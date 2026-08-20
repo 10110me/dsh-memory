@@ -1,0 +1,22 @@
+# node
+node_modules/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# build
+*.tsbuildinfo
+
+# local runtime data (never commit personal configuration)
+.dsh-memory-*.json
+
+# os
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.local
+
+# jspace workspace metadata
+.jspace/
