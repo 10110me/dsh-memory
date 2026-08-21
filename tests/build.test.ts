@@ -25,6 +25,8 @@ describe('dsh-memory build artifacts', () => {
     const src = readFileSync(resolve(root, 'lib/index.js'), 'utf8')
     expect(src).toContain('/memory/api/update/check')
     expect(src).toContain('/memory/api/update/ignore')
+    expect(src).toContain('/memory/api/update/prepare')
+    expect(src).toContain('/memory/api/update/apply')
     expect(src).toContain('/memory/api/update/run')
     expect(src).toContain('raw.githubusercontent.com/10110me/dsh-memory')
   })
@@ -33,7 +35,8 @@ describe('dsh-memory build artifacts', () => {
     const src = readFileSync(resolve(root, 'client/client.js'), 'utf8')
     expect(src).toContain('dshm-update')
     expect(src).toContain('/update/ignore')
-    expect(src).toContain('/update/run')
+    expect(src).toContain('/update/prepare')
+    expect(src).toContain('/update/apply')
   })
 
   it('client bundle is a __ModuleLoader__ closure factory', () => {

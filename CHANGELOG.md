@@ -2,6 +2,11 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.2
+
+- Localized changelog: a Chinese changelog (CHANGELOG.zh.md) is fetched alongside the English one, and the update banner picks the right language automatically based on the browser/UI language.
+- Visible update progress: the update button now runs two real stages — download & verify, then install — each shown live with a spinner and step text, instead of a silent wait.
+
 ## 1.1.1
 
 - Workflow knowledge is now saved automatically: when a session establishes repeatable build/release/deploy steps, the model records them as type "knowledge" with exact commands and paths (new trigger in memory_save description and system prompt rule 5).

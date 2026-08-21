@@ -119,6 +119,7 @@ const UPDATE_FILES = [
   'README.md',
   'LICENSE',
   'CHANGELOG.md',
+  'CHANGELOG.zh.md',
   'lib/index.js',
   'lib/index.d.ts',
   'client/client.js',
@@ -304,7 +305,7 @@ export function apply(ctx: Context): void {
     return JSON.parse(String(out).trim())
   }
 
-  async function checkForUpdate(force?: boolean): Promise<{ ok: boolean; current: string; latest?: string; hasUpdate?: boolean; changelog?: string; error?: string; checkedAt: number }> {
+  async function checkForUpdate(force?: boolean): Promise<{ ok: boolean; current: string; latest?: string; hasUpdate?: boolean; changelog?: string; changelogZh?: string; error?: string; checkedAt: number }> {
     const now = nowSec()
     if (!force && updateCache && now - updateCache.at < UPDATE_TTL) return updateCache.result as { ok: boolean; current: string; checkedAt: number }
     try {
@@ -312,11 +313,16 @@ export function apply(ctx: Context): void {
       if (!pkgRes.ok) throw new Error('GitHub HTTP ' + pkgRes.status)
       const latest = String(JSON.parse(pkgRes.body).version || '')
       let changelog = ''
+      let changelogZh = ''
       try {
         const cl = await httpViaNode(UPDATE_REPO_RAW + 'CHANGELOG.md')
         if (cl.ok) changelog = String(cl.body || '').slice(0, 4000)
       } catch (e) {}
-      const result = { ok: true, current: CURRENT_VERSION, latest, hasUpdate: isNewerVersion(latest, CURRENT_VERSION), changelog, checkedAt: nowSec() }
+      try {
+        const clz = await httpViaNode(UPDATE_REPO_RAW + 'CHANGELOG.zh.md')
+        if (clz.ok) changelogZh = String(clz.body || '').slice(0, 4000)
+      } catch (e) {}
+      const result = { ok: true, current: CURRENT_VERSION, latest, hasUpdate: isNewerVersion(latest, CURRENT_VERSION), changelog, changelogZh, checkedAt: nowSec() }
       updateCache = { at: nowSec(), result }
       return result
     } catch (e) {
@@ -324,7 +330,11 @@ export function apply(ctx: Context): void {
     }
   }
 
-  async function runSelfUpdate(): Promise<{ ok: boolean; from?: string; to?: string; restartRequired?: boolean; error?: string }> {
+  /** Version staged by prepareUpdate, awaiting applyUpdate. */
+  let updateStagedVersion: string | null = null
+
+  // Phase 1: check + download + verify into a staging dir (the slow network part).
+  async function prepareUpdate(): Promise<{ ok: boolean; to?: string; error?: string }> {
     if (updateRunning) return { ok: false, error: 'update already in progress' }
     const check = await checkForUpdate(true)
     if (!check.ok || !check.latest) return { ok: false, error: check.error || 'cannot determine latest version' }
@@ -333,7 +343,6 @@ export function apply(ctx: Context): void {
     const base = ownPackageDir()
     const tmp = nodePath.join(base, UPDATE_TMP_DIR)
     try {
-      // 1) download every runtime file into a staging dir inside our own package
       await fsp.rm(tmp, { recursive: true, force: true })
       for (const rel of UPDATE_FILES) {
         const r = await httpViaNode(UPDATE_REPO_RAW + rel)
@@ -342,24 +351,51 @@ export function apply(ctx: Context): void {
         await fsp.mkdir(nodePath.dirname(target), { recursive: true })
         await fsp.writeFile(target, r.body, 'utf8')
       }
-      // 2) verify the staged package really is newer before touching anything live
       const staged = JSON.parse(await fsp.readFile(nodePath.join(tmp, 'package.json'), 'utf8'))
       if (!isNewerVersion(String(staged.version || ''), CURRENT_VERSION)) throw new Error('staged version is not newer than ' + CURRENT_VERSION)
-      // 3) swap staged files into place — only this package directory is touched
+      updateStagedVersion = String(staged.version)
+      return { ok: true, to: updateStagedVersion }
+    } catch (e) {
+      try { await fsp.rm(tmp, { recursive: true, force: true }) } catch (e2) {}
+      updateStagedVersion = null
+      return { ok: false, error: String(e && (e as Error).message || e) }
+    } finally {
+      updateRunning = false
+    }
+  }
+
+  // Phase 2: swap staged files into place — only this package directory is touched.
+  async function applyUpdate(): Promise<{ ok: boolean; from?: string; to?: string; restartRequired?: boolean; error?: string }> {
+    if (updateRunning) return { ok: false, error: 'update already in progress' }
+    if (!updateStagedVersion) return { ok: false, error: 'no staged update — call prepare first' }
+    updateRunning = true
+    const base = ownPackageDir()
+    const tmp = nodePath.join(base, UPDATE_TMP_DIR)
+    try {
       for (const rel of UPDATE_FILES) {
         const dst = nodePath.join(base, rel)
         await fsp.mkdir(nodePath.dirname(dst), { recursive: true })
         await fsp.copyFile(nodePath.join(tmp, rel), dst)
       }
-      // 4) clean staging
       await fsp.rm(tmp, { recursive: true, force: true })
-      return { ok: true, from: CURRENT_VERSION, to: String(staged.version), restartRequired: true }
+      const to = updateStagedVersion
+      updateStagedVersion = null
+      return { ok: true, from: CURRENT_VERSION, to, restartRequired: true }
     } catch (e) {
       try { await fsp.rm(tmp, { recursive: true, force: true }) } catch (e2) {}
       return { ok: false, error: String(e && (e as Error).message || e) }
     } finally {
       updateRunning = false
     }
+  }
+
+  // One-shot composite kept for compatibility (model/tools/tests).
+  async function runSelfUpdate(): Promise<{ ok: boolean; from?: string; to?: string; restartRequired?: boolean; error?: string }> {
+    const p = await prepareUpdate()
+    if (!p.ok) return { ok: false, error: p.error }
+    const a = await applyUpdate()
+    if (!a.ok) return { ok: false, error: a.error }
+    return a
   }
 
   async function organizeWithModel(content: string, type: MemoryType, cfg: EmbedConfig, signal?: { aborted?: boolean }): Promise<{ summary: string; content: string; tags: string[]; entities: string[] } | null> {
@@ -652,6 +688,14 @@ interface HttpResponseLike {
           updateCache = null
           await persistConfig()
           return sendJson(res, 200, publicConfig())
+        }
+        if (method === 'POST' && path === '/memory/api/update/prepare') {
+          const r = await prepareUpdate()
+          return sendJson(res, 200, r)
+        }
+        if (method === 'POST' && path === '/memory/api/update/apply') {
+          const r = await applyUpdate()
+          return sendJson(res, 200, r)
         }
         if (method === 'POST' && path === '/memory/api/update/run') {
           const r = await runSelfUpdate()

@@ -683,36 +683,66 @@ function GraphView() {
     h(GraphCanvas, { nodes: data.nodes, edges: data.edges }));
 }
 
-// ── 更新提示横幅：忽略 / 忽略这个版本 / 更新 ──
+// ── 更新提示横幅：忽略 / 忽略这个版本 / 更新（两阶段真实进度 + 中英文自适应） ──
 function UpdateBanner(props) {
   var info = props.info;
   var onDone = props.onDone || function () {};
+  var zh = ((typeof navigator !== 'undefined' && navigator.language) || '').toLowerCase().indexOf('zh') === 0;
+  var L = zh ? {
+    title: '\u63d2\u4ef6\u6709\u66f4\u65b0\uff1a',
+    ignore: '\u5ffd\u7565',
+    ignoreV: '\u5ffd\u7565\u8fd9\u4e2a\u7248\u672c',
+    update: '\u66f4\u65b0',
+    fail: '\u66f4\u65b0\u5931\u8d25\uff1a',
+    opFail: '\u64cd\u4f5c\u5931\u8d25\uff1a',
+    stepDl: '\u6b63\u5728\u4e0b\u8f7d\u65b0\u7248\u672c\u2026',
+    stepIn: '\u6b63\u5728\u5b89\u88c5\u6587\u4ef6\u2026'
+  } : {
+    title: 'Update available: ',
+    ignore: 'Dismiss',
+    ignoreV: 'Skip this version',
+    update: 'Update',
+    fail: 'Update failed: ',
+    opFail: 'Operation failed: ',
+    stepDl: 'Downloading new version…',
+    stepIn: 'Installing files…'
+  };
+  var logText = (zh && info.changelogZh) ? info.changelogZh : info.changelog;
   var busyArr = React.useState(false);
   var setBusy = busyArr[1]; busyArr = busyArr[0];
   var msgArr = React.useState('');
   var setMsg = msgArr[1]; msgArr = msgArr[0];
+  var phaseArr = React.useState(''); // '' | 'dl' | 'in'
+  var setPhase = phaseArr[1]; phaseArr = phaseArr[0];
 
   function doIgnore() { onDone({ action: 'dismiss' }); }
   function doIgnoreVersion() {
     setBusy(true);
-    apiPost('/update/ignore', { version: info.latest }).then(function () { onDone({ action: 'ignoreVersion' }); }).catch(function (e) { setBusy(false); setMsg('\u64cd\u4f5c\u5931\u8d25\uff1a' + String(e && e.message || e)); });
+    apiPost('/update/ignore', { version: info.latest }).then(function () { onDone({ action: 'ignoreVersion' }); }).catch(function (e) { setBusy(false); setMsg(L.opFail + String(e && e.message || e)); });
   }
   function doUpdate() {
-    setBusy(true); setMsg('');
-    apiPost('/update/run', {}).then(function (r) {
-      if (r && r.ok) { onDone({ action: 'updated', to: r.to }); }
-      else { setBusy(false); setMsg('\u66f4\u65b0\u5931\u8d25\uff1a' + ((r && r.error) || '\u672a\u77e5\u9519\u8bef')); }
-    }).catch(function (e) { setBusy(false); setMsg('\u66f4\u65b0\u5931\u8d25\uff1a' + String(e && e.message || e)); });
+    setBusy(true); setMsg(''); setPhase('dl');
+    apiPost('/update/prepare', {}).then(function (p) {
+      if (!(p && p.ok)) throw new Error((p && p.error) || 'prepare failed');
+      setPhase('in');
+      return apiPost('/update/apply', {});
+    }).then(function (a) {
+      if (!(a && a.ok)) throw new Error((a && a.error) || 'apply failed');
+      onDone({ action: 'updated', to: a.to });
+    }).catch(function (e) { setBusy(false); setPhase(''); setMsg(L.fail + String(e && e.message || e)); });
   }
+  var stepText = phaseArr === 'dl' ? L.stepDl : (phaseArr === 'in' ? L.stepIn : '');
 
   return h('div', { className: 'dshm-update' },
-    h('div', { className: 'dshm-update-title' }, '\u63d2\u4ef6\u6709\u66f4\u65b0\uff1av' + info.current + ' \u2192 v' + info.latest),
-    (info.changelog ? h('div', { className: 'dshm-update-log' }, info.changelog) : null),
+    h('div', { className: 'dshm-update-title' }, L.title + 'v' + info.current + ' \u2192 v' + info.latest),
+    (logText ? h('div', { className: 'dshm-update-log' }, logText) : null),
     h('div', { className: 'dshm-update-actions' },
-      h('button', { onClick: doIgnore, disabled: busyArr }, '\u5ffd\u7565'),
-      h('button', { onClick: doIgnoreVersion, disabled: busyArr }, '\u5ffd\u7565\u8fd9\u4e2a\u7248\u672c'),
-      h('button', { onClick: doUpdate, disabled: busyArr }, busyArr ? '\u66f4\u65b0\u4e2d\u2026' : '\u66f4\u65b0'),
-      (msgArr ? h('span', { className: 'dshm-update-msg' }, msgArr) : null)));
+      h('button', { onClick: doIgnore, disabled: busyArr }, L.ignore),
+      h('button', { onClick: doIgnoreVersion, disabled: busyArr }, L.ignoreV),
+      h('button', { onClick: doUpdate, disabled: busyArr }, busyArr ? (zh ? '\u66f4\u65b0\u4e2d\u2026' : 'Updating…') : L.update),
+      (busyArr ? h('span', { className: 'dshm-spinner' }) : null),
+      (stepText ? h('span', { className: 'dshm-update-msg' }, stepText) : null),
+      (msgArr && !busyArr ? h('span', { className: 'dshm-update-msg' }, msgArr) : null)));
 }
 
 function MemorySettings() {
@@ -737,7 +767,8 @@ function MemorySettings() {
 
   function onUpdateDone(r) {
     if (r && r.action === 'updated') {
-      setStatus('\u2714 \u5df2\u66f4\u65b0\u5230 v' + r.to + '\uff0c\u91cd\u542f dsh web \u540e\u751f\u6548');
+      var zh2 = ((typeof navigator !== 'undefined' && navigator.language) || '').toLowerCase().indexOf('zh') === 0;
+      setStatus(zh2 ? ('\u2714 \u5df2\u66f4\u65b0\u5230 v' + r.to + '\uff0c\u91cd\u542f dsh web \u540e\u751f\u6548') : ('\u2714 Updated to v' + r.to + ' \u2014 restart dsh web to apply'));
       refresh();
     }
     setUpd(null); // dismiss / ignoreVersion / updated 都收起横幅

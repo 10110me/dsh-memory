@@ -876,12 +876,36 @@ function GraphView() {
 function UpdateBanner(props) {
 	var info = props.info;
 	var onDone = props.onDone || function() {};
+	var zh = (typeof navigator !== "undefined" && navigator.language || "").toLowerCase().indexOf("zh") === 0;
+	var L = zh ? {
+		title: "插件有更新：",
+		ignore: "忽略",
+		ignoreV: "忽略这个版本",
+		update: "更新",
+		fail: "更新失败：",
+		opFail: "操作失败：",
+		stepDl: "正在下载新版本…",
+		stepIn: "正在安装文件…"
+	} : {
+		title: "Update available: ",
+		ignore: "Dismiss",
+		ignoreV: "Skip this version",
+		update: "Update",
+		fail: "Update failed: ",
+		opFail: "Operation failed: ",
+		stepDl: "Downloading new version…",
+		stepIn: "Installing files…"
+	};
+	var logText = zh && info.changelogZh ? info.changelogZh : info.changelog;
 	var busyArr = react.default.useState(false);
 	var setBusy = busyArr[1];
 	busyArr = busyArr[0];
 	var msgArr = react.default.useState("");
 	var setMsg = msgArr[1];
 	msgArr = msgArr[0];
+	var phaseArr = react.default.useState("");
+	var setPhase = phaseArr[1];
+	phaseArr = phaseArr[0];
 	function doIgnore() {
 		onDone({ action: "dismiss" });
 	}
@@ -891,36 +915,40 @@ function UpdateBanner(props) {
 			onDone({ action: "ignoreVersion" });
 		}).catch(function(e) {
 			setBusy(false);
-			setMsg("操作失败：" + String(e && e.message || e));
+			setMsg(L.opFail + String(e && e.message || e));
 		});
 	}
 	function doUpdate() {
 		setBusy(true);
 		setMsg("");
-		apiPost("/update/run", {}).then(function(r) {
-			if (r && r.ok) onDone({
+		setPhase("dl");
+		apiPost("/update/prepare", {}).then(function(p) {
+			if (!(p && p.ok)) throw new Error(p && p.error || "prepare failed");
+			setPhase("in");
+			return apiPost("/update/apply", {});
+		}).then(function(a) {
+			if (!(a && a.ok)) throw new Error(a && a.error || "apply failed");
+			onDone({
 				action: "updated",
-				to: r.to
+				to: a.to
 			});
-			else {
-				setBusy(false);
-				setMsg("更新失败：" + (r && r.error || "未知错误"));
-			}
 		}).catch(function(e) {
 			setBusy(false);
-			setMsg("更新失败：" + String(e && e.message || e));
+			setPhase("");
+			setMsg(L.fail + String(e && e.message || e));
 		});
 	}
-	return (0, react.createElement)("div", { className: "dshm-update" }, (0, react.createElement)("div", { className: "dshm-update-title" }, "插件有更新：v" + info.current + " → v" + info.latest), info.changelog ? (0, react.createElement)("div", { className: "dshm-update-log" }, info.changelog) : null, (0, react.createElement)("div", { className: "dshm-update-actions" }, (0, react.createElement)("button", {
+	var stepText = phaseArr === "dl" ? L.stepDl : phaseArr === "in" ? L.stepIn : "";
+	return (0, react.createElement)("div", { className: "dshm-update" }, (0, react.createElement)("div", { className: "dshm-update-title" }, L.title + "v" + info.current + " → v" + info.latest), logText ? (0, react.createElement)("div", { className: "dshm-update-log" }, logText) : null, (0, react.createElement)("div", { className: "dshm-update-actions" }, (0, react.createElement)("button", {
 		onClick: doIgnore,
 		disabled: busyArr
-	}, "忽略"), (0, react.createElement)("button", {
+	}, L.ignore), (0, react.createElement)("button", {
 		onClick: doIgnoreVersion,
 		disabled: busyArr
-	}, "忽略这个版本"), (0, react.createElement)("button", {
+	}, L.ignoreV), (0, react.createElement)("button", {
 		onClick: doUpdate,
 		disabled: busyArr
-	}, busyArr ? "更新中…" : "更新"), msgArr ? (0, react.createElement)("span", { className: "dshm-update-msg" }, msgArr) : null));
+	}, busyArr ? zh ? "更新中…" : "Updating…" : L.update), busyArr ? (0, react.createElement)("span", { className: "dshm-spinner" }) : null, stepText ? (0, react.createElement)("span", { className: "dshm-update-msg" }, stepText) : null, msgArr && !busyArr ? (0, react.createElement)("span", { className: "dshm-update-msg" }, msgArr) : null));
 }
 function MemorySettings() {
 	var tab = react.default.useState("config");
@@ -950,7 +978,7 @@ function MemorySettings() {
 	}, []);
 	function onUpdateDone(r) {
 		if (r && r.action === "updated") {
-			setStatus("✔ 已更新到 v" + r.to + "，重启 dsh web 后生效");
+			setStatus((typeof navigator !== "undefined" && navigator.language || "").toLowerCase().indexOf("zh") === 0 ? "✔ 已更新到 v" + r.to + "，重启 dsh web 后生效" : "✔ Updated to v" + r.to + " — restart dsh web to apply");
 			refresh();
 		}
 		setUpd(null);
