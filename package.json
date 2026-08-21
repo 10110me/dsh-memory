@@ -1,7 +1,7 @@
 {
   "name": "dsh-memory",
   "description": "Persistent programming memory for DeepSeek Harness: store pitfalls/knowledge/notes, semantic + keyword search, entity relationship graph, model-assisted organization.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

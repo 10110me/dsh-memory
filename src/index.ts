@@ -672,7 +672,7 @@ interface HttpResponseLike {
 
   ctx.tools.register(defineTool({
     name: 'memory_save',
-    description: 'Store a pitfall, lesson, or useful knowledge into persistent memory. Call this proactively when: you just FIXED a non-trivial bug (record symptom, root cause and the working fix as type "pitfall"); you discovered a non-obvious gotcha or API quirk; you learned a hard-won fact. Skip trivial or obvious things. The note is organized by the current model and embedded for semantic retrieval.',
+    description: 'Store a pitfall, lesson, or useful knowledge into persistent memory. Call this proactively when: you just FIXED a non-trivial bug (record symptom, root cause and the working fix as type "pitfall"); you discovered a non-obvious gotcha or API quirk; you learned a hard-won fact; you established or refined a repeatable workflow such as build/release/deploy steps (record the exact steps as type "knowledge" so later sessions can follow them instead of re-deriving). Skip trivial or obvious things. The note is organized by the current model and embedded for semantic retrieval.',
     parameters: {
       content: { type: 'string', required: true, description: 'The note to remember (pitfall, lesson, or knowledge).' },
       type: { type: 'string', enum: ['pitfall', 'knowledge', 'note'], description: 'Kind of memory. Defaults to note.' },
@@ -746,7 +746,7 @@ interface HttpResponseLike {
     systemPrompt.section({
       name: 'memory:guidance',
       order: 130,
-      text: 'You have a persistent programming memory. Use it at these moments: (1) Before starting a non-trivial coding task, call memory_search with a query describing the task. (2) When you hit a bug, error message, or unexpected behavior, call memory_search FIRST — use keywords from the error text or symptom as the query — before trying fixes; a stored pitfall may already contain the answer. (3) After you fix a non-trivial bug, call memory_save with type "pitfall" and a self-contained note: the symptom/error, the root cause, and the working fix. (4) When you discover a non-obvious gotcha or useful new fact, save it as well. Skip trivial or obvious observations. When you find an outdated or wrong memory, correct the record with memory_delete. Prefer searching memory over re-discovering known issues.',
+      text: 'You have a persistent programming memory. Use it at these moments: (1) Before starting a non-trivial coding task, call memory_search with a query describing the task. (2) When you hit a bug, error message, or unexpected behavior, call memory_search FIRST — use keywords from the error text or symptom as the query — before trying fixes; a stored pitfall may already contain the answer. (3) After you fix a non-trivial bug, call memory_save with type "pitfall" and a self-contained note: the symptom/error, the root cause, and the working fix. (4) When you discover a non-obvious gotcha or useful new fact, save it as well. (5) When you establish a repeatable process for a project — build, release, deploy, or configuration steps — save it via memory_save as type "knowledge" with the exact commands and paths, in the same turn you work it out. Skip trivial or obvious observations. When you find an outdated or wrong memory, correct the record with memory_delete. Prefer searching memory over re-discovering known issues.',
     })
   }
 }

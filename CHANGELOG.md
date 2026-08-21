@@ -2,6 +2,10 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.1
+
+- Workflow knowledge is now saved automatically: when a session establishes repeatable build/release/deploy steps, the model records them as type "knowledge" with exact commands and paths (new trigger in memory_save description and system prompt rule 5).
+
 ## 1.1.0
 
 - Smarter memory tool usage: the model now searches memory FIRST when it hits a bug or error, and saves a pitfall (symptom + root cause + fix) after fixing a non-trivial bug — enforced through tool descriptions and the system prompt.
