@@ -26,7 +26,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 let react = require("react");
 react = __toESM(react, 1);
 //#region src/client/index.tsx
-var CSS = ".dshm-root{display:flex;flex-direction:column;gap:12px;padding:6px 2px;font-size:13px;color:inherit}.dshm-tabs{display:flex;gap:6px}.dshm-tab{padding:6px 12px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:13px}.dshm-tab-on{background:rgba(100,120,230,.18);border-color:rgba(100,120,230,.7)}.dshm-banner{opacity:.7}.dshm-status{padding:6px 10px;border-radius:8px;background:rgba(255,190,60,.15);color:inherit}.dshm-form{display:flex;flex-direction:column;gap:10px;max-width:480px}.dshm-field{display:flex;flex-direction:column;gap:4px}.dshm-label{opacity:.7;font-size:12px}.dshm-form input[type=text],.dshm-form input[type=password],.dshm-form input[type=number],.dshm-search,.dshm-card textarea{background:rgba(127,127,127,.07);border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;color:inherit;font-size:13px}.dshm-browbar select{color-scheme:dark;background:#1a1d24;color:#e6e6e6;border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;font-size:13px}.dshm-browbar select option{background:#1a1d24;color:#e6e6e6}.dshm-actions{display:flex;gap:8px;margin-top:4px}.dshm-actions button,.dshm-browbar button,.dshm-graph-toolbar button{padding:8px 14px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:rgba(100,120,230,.18);color:inherit;cursor:pointer}.dshm-actions button:disabled{opacity:.5;cursor:default}.dshm-hint{opacity:.65;font-size:11px;line-height:1.5}.dshm-browser{display:flex;flex-direction:column;gap:10px}.dshm-browbar{display:flex;gap:8px;align-items:center}.dshm-search{flex:1}.dshm-count{opacity:.7;font-size:12px}.dshm-card{border:1px solid rgba(127,127,127,.3);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:rgba(127,127,127,.05)}.dshm-card-head{display:flex;align-items:center;gap:8px}.dshm-badge{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid rgba(127,127,127,.5);opacity:.85}.dshm-badge-pitfall{color:#e07979;border-color:#c26a6a}.dshm-badge-knowledge{color:#79a8e0;border-color:#6a92c2}.dshm-badge-note{opacity:.8}.dshm-summary{font-weight:600;flex:1}.dshm-del{background:transparent;border:none;color:#d88;cursor:pointer;font-size:12px}.dshm-content{opacity:.8;line-height:1.5;white-space:pre-wrap;word-break:break-word}.dshm-tags{display:flex;flex-wrap:wrap;gap:4px}.dshm-tag{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(100,120,230,.16)}.dshm-empty{opacity:.7;padding:12px 0}.dshm-pending{display:flex;flex-direction:column;gap:6px}.dshm-pending-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(100,120,230,.35);border-radius:10px;background:rgba(100,120,230,.08)}.dshm-pending-preview{flex:1;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dshm-spinner{width:14px;height:14px;border:2px solid rgba(127,127,127,.3);border-top-color:rgba(100,120,230,.9);border-radius:50%;display:inline-block;animation:dshmspin .8s linear infinite}@keyframes dshmspin{to{transform:rotate(360deg)}}.dshm-stage{font-size:12px;opacity:.8;white-space:nowrap}.dshm-stage-done{color:#7fd17f}.dshm-stage-err{color:#e07979}.dshm-graph{display:flex;flex-direction:column;gap:8px}.dshm-graph-toolbar{display:flex;gap:6px;align-items:center}.dshm-graph-toolbar button{padding:4px 12px}.dshm-svg{display:block;max-width:100%;background:rgba(127,127,127,.04);border:1px solid rgba(127,127,127,.3);border-radius:10px;touch-action:none}.dshm-node-label{fill:currentColor;font-size:11px}.dshm-graph-linew{display:flex;gap:8px;align-items:center;font-size:12px}.dshm-graph-linew input[type=range]{accent-color:rgba(100,120,230,.8)}.dshm-selinfo{padding:10px 12px;border:1px solid rgba(255,200,80,.35);border-radius:10px;background:rgba(255,200,80,.08);display:flex;flex-direction:column;gap:8px}.dshm-selinfo-title{font-weight:600;font-size:14px}.dshm-selinfo-neighbors{display:flex;flex-wrap:wrap;gap:4px}.dshm-selinfo-neighbors .dshm-tag{background:rgba(255,200,80,.16)}";
+var CSS = ".dshm-root{display:flex;flex-direction:column;gap:12px;padding:6px 2px;font-size:13px;color:inherit}.dshm-tabs{display:flex;gap:6px}.dshm-tab{padding:6px 12px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:13px}.dshm-tab-on{background:rgba(100,120,230,.18);border-color:rgba(100,120,230,.7)}.dshm-banner{opacity:.7}.dshm-status{padding:6px 10px;border-radius:8px;background:rgba(255,190,60,.15);color:inherit}.dshm-form{display:flex;flex-direction:column;gap:10px;max-width:480px}.dshm-field{display:flex;flex-direction:column;gap:4px}.dshm-label{opacity:.7;font-size:12px}.dshm-form input[type=text],.dshm-form input[type=password],.dshm-form input[type=number],.dshm-search,.dshm-card textarea{background:rgba(127,127,127,.07);border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;color:inherit;font-size:13px}.dshm-browbar select{color-scheme:dark;background:#1a1d24;color:#e6e6e6;border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;font-size:13px}.dshm-browbar select option{background:#1a1d24;color:#e6e6e6}.dshm-actions{display:flex;gap:8px;margin-top:4px}.dshm-actions button,.dshm-browbar button,.dshm-graph-toolbar button{padding:8px 14px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:rgba(100,120,230,.18);color:inherit;cursor:pointer}.dshm-actions button:disabled{opacity:.5;cursor:default}.dshm-hint{opacity:.65;font-size:11px;line-height:1.5}.dshm-browser{display:flex;flex-direction:column;gap:10px}.dshm-browbar{display:flex;gap:8px;align-items:center}.dshm-search{flex:1}.dshm-count{opacity:.7;font-size:12px}.dshm-card{border:1px solid rgba(127,127,127,.3);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:rgba(127,127,127,.05)}.dshm-card-head{display:flex;align-items:center;gap:8px}.dshm-badge{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid rgba(127,127,127,.5);opacity:.85}.dshm-badge-pitfall{color:#e07979;border-color:#c26a6a}.dshm-badge-knowledge{color:#79a8e0;border-color:#6a92c2}.dshm-badge-note{opacity:.8}.dshm-summary{font-weight:600;flex:1}.dshm-del{background:transparent;border:none;color:#d88;cursor:pointer;font-size:12px}.dshm-content{opacity:.8;line-height:1.5;white-space:pre-wrap;word-break:break-word}.dshm-tags{display:flex;flex-wrap:wrap;gap:4px}.dshm-tag{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(100,120,230,.16)}.dshm-empty{opacity:.7;padding:12px 0}.dshm-pending{display:flex;flex-direction:column;gap:6px}.dshm-pending-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(100,120,230,.35);border-radius:10px;background:rgba(100,120,230,.08)}.dshm-pending-preview{flex:1;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dshm-spinner{width:14px;height:14px;border:2px solid rgba(127,127,127,.3);border-top-color:rgba(100,120,230,.9);border-radius:50%;display:inline-block;animation:dshmspin .8s linear infinite}@keyframes dshmspin{to{transform:rotate(360deg)}}.dshm-stage{font-size:12px;opacity:.8;white-space:nowrap}.dshm-stage-done{color:#7fd17f}.dshm-stage-err{color:#e07979}.dshm-graph{display:flex;flex-direction:column;gap:8px}.dshm-graph-toolbar{display:flex;gap:6px;align-items:center}.dshm-graph-toolbar button{padding:4px 12px}.dshm-svg{display:block;max-width:100%;background:rgba(127,127,127,.04);border:1px solid rgba(127,127,127,.3);border-radius:10px;touch-action:none}.dshm-node-label{fill:currentColor;font-size:11px}.dshm-graph-linew{display:flex;gap:8px;align-items:center;font-size:12px}.dshm-graph-linew input[type=range]{accent-color:rgba(100,120,230,.8)}.dshm-selinfo{padding:10px 12px;border:1px solid rgba(255,200,80,.35);border-radius:10px;background:rgba(255,200,80,.08);display:flex;flex-direction:column;gap:8px}.dshm-selinfo-title{font-weight:600;font-size:14px}.dshm-selinfo-neighbors{display:flex;flex-wrap:wrap;gap:4px}.dshm-selinfo-neighbors .dshm-tag{background:rgba(255,200,80,.16)}.dshm-update{border:1px solid rgba(100,120,230,.55);border-radius:10px;padding:10px 12px;background:rgba(100,120,230,.1);display:flex;flex-direction:column;gap:8px}.dshm-update-title{font-weight:600}.dshm-update-log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:160px;overflow:auto;border:1px solid rgba(127,127,127,.25);border-radius:8px;padding:8px 10px;background:rgba(127,127,127,.05)}.dshm-update-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dshm-update-msg{font-size:12px;opacity:.85}";
 var styleTag = null;
 function ensureCSS() {
 	if (styleTag) return;
@@ -873,6 +873,55 @@ function GraphView() {
 		edges: data.edges
 	}));
 }
+function UpdateBanner(props) {
+	var info = props.info;
+	var onDone = props.onDone || function() {};
+	var busyArr = react.default.useState(false);
+	var setBusy = busyArr[1];
+	busyArr = busyArr[0];
+	var msgArr = react.default.useState("");
+	var setMsg = msgArr[1];
+	msgArr = msgArr[0];
+	function doIgnore() {
+		onDone({ action: "dismiss" });
+	}
+	function doIgnoreVersion() {
+		setBusy(true);
+		apiPost("/update/ignore", { version: info.latest }).then(function() {
+			onDone({ action: "ignoreVersion" });
+		}).catch(function(e) {
+			setBusy(false);
+			setMsg("操作失败：" + String(e && e.message || e));
+		});
+	}
+	function doUpdate() {
+		setBusy(true);
+		setMsg("");
+		apiPost("/update/run", {}).then(function(r) {
+			if (r && r.ok) onDone({
+				action: "updated",
+				to: r.to
+			});
+			else {
+				setBusy(false);
+				setMsg("更新失败：" + (r && r.error || "未知错误"));
+			}
+		}).catch(function(e) {
+			setBusy(false);
+			setMsg("更新失败：" + String(e && e.message || e));
+		});
+	}
+	return (0, react.createElement)("div", { className: "dshm-update" }, (0, react.createElement)("div", { className: "dshm-update-title" }, "插件有更新：v" + info.current + " → v" + info.latest), info.changelog ? (0, react.createElement)("div", { className: "dshm-update-log" }, info.changelog) : null, (0, react.createElement)("div", { className: "dshm-update-actions" }, (0, react.createElement)("button", {
+		onClick: doIgnore,
+		disabled: busyArr
+	}, "忽略"), (0, react.createElement)("button", {
+		onClick: doIgnoreVersion,
+		disabled: busyArr
+	}, "忽略这个版本"), (0, react.createElement)("button", {
+		onClick: doUpdate,
+		disabled: busyArr
+	}, busyArr ? "更新中…" : "更新"), msgArr ? (0, react.createElement)("span", { className: "dshm-update-msg" }, msgArr) : null));
+}
 function MemorySettings() {
 	var tab = react.default.useState("config");
 	var setTab = tab[1];
@@ -886,6 +935,9 @@ function MemorySettings() {
 	var status = react.default.useState("");
 	var setStatus = status[1];
 	status = status[0];
+	var upd = react.default.useState(null);
+	var setUpd = upd[1];
+	upd = upd[0];
 	function refresh() {
 		apiGet("/config").then(setCfg).catch(function(e) {
 			setStatus("读取配置失败：" + String(e && e.message || e));
@@ -893,8 +945,23 @@ function MemorySettings() {
 		apiGet("/stats").then(setStats).catch(function() {});
 	}
 	react.default.useEffect(refresh, []);
+	react.default.useEffect(function() {
+		apiGet("/update/check").then(setUpd).catch(function() {});
+	}, []);
+	function onUpdateDone(r) {
+		if (r && r.action === "updated") {
+			setStatus("✔ 已更新到 v" + r.to + "，重启 dsh web 后生效");
+			refresh();
+		}
+		setUpd(null);
+	}
+	var ignoredV = String(cfg && cfg.ignoredUpdateVersion || upd && upd.ignoredVersion || "");
+	var showUpdate = !!(upd && upd.ok && upd.hasUpdate && String(upd.latest) !== ignoredV);
 	ensureCSS();
-	return (0, react.createElement)("div", { className: "dshm-root" }, (0, react.createElement)("div", { className: "dshm-tabs" }, (0, react.createElement)("button", {
+	return (0, react.createElement)("div", { className: "dshm-root" }, showUpdate ? (0, react.createElement)(UpdateBanner, {
+		info: upd,
+		onDone: onUpdateDone
+	}) : null, (0, react.createElement)("div", { className: "dshm-tabs" }, (0, react.createElement)("button", {
 		className: "dshm-tab" + (tab === "config" ? " dshm-tab-on" : ""),
 		onClick: function() {
 			setTab("config");

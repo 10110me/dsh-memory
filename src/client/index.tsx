@@ -52,7 +52,12 @@ var CSS = '.dshm-root{display:flex;flex-direction:column;gap:12px;padding:6px 2p
 + '.dshm-selinfo{padding:10px 12px;border:1px solid rgba(255,200,80,.35);border-radius:10px;background:rgba(255,200,80,.08);display:flex;flex-direction:column;gap:8px}'
 + '.dshm-selinfo-title{font-weight:600;font-size:14px}'
 + '.dshm-selinfo-neighbors{display:flex;flex-wrap:wrap;gap:4px}'
-+ '.dshm-selinfo-neighbors .dshm-tag{background:rgba(255,200,80,.16)}';
++ '.dshm-selinfo-neighbors .dshm-tag{background:rgba(255,200,80,.16)}'
++ '.dshm-update{border:1px solid rgba(100,120,230,.55);border-radius:10px;padding:10px 12px;background:rgba(100,120,230,.1);display:flex;flex-direction:column;gap:8px}'
++ '.dshm-update-title{font-weight:600}'
++ '.dshm-update-log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:160px;overflow:auto;border:1px solid rgba(127,127,127,.25);border-radius:8px;padding:8px 10px;background:rgba(127,127,127,.05)}'
++ '.dshm-update-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}'
++ '.dshm-update-msg{font-size:12px;opacity:.85}';
 
 var styleTag = null;
 function ensureCSS() {
@@ -678,6 +683,38 @@ function GraphView() {
     h(GraphCanvas, { nodes: data.nodes, edges: data.edges }));
 }
 
+// ── 更新提示横幅：忽略 / 忽略这个版本 / 更新 ──
+function UpdateBanner(props) {
+  var info = props.info;
+  var onDone = props.onDone || function () {};
+  var busyArr = React.useState(false);
+  var setBusy = busyArr[1]; busyArr = busyArr[0];
+  var msgArr = React.useState('');
+  var setMsg = msgArr[1]; msgArr = msgArr[0];
+
+  function doIgnore() { onDone({ action: 'dismiss' }); }
+  function doIgnoreVersion() {
+    setBusy(true);
+    apiPost('/update/ignore', { version: info.latest }).then(function () { onDone({ action: 'ignoreVersion' }); }).catch(function (e) { setBusy(false); setMsg('\u64cd\u4f5c\u5931\u8d25\uff1a' + String(e && e.message || e)); });
+  }
+  function doUpdate() {
+    setBusy(true); setMsg('');
+    apiPost('/update/run', {}).then(function (r) {
+      if (r && r.ok) { onDone({ action: 'updated', to: r.to }); }
+      else { setBusy(false); setMsg('\u66f4\u65b0\u5931\u8d25\uff1a' + ((r && r.error) || '\u672a\u77e5\u9519\u8bef')); }
+    }).catch(function (e) { setBusy(false); setMsg('\u66f4\u65b0\u5931\u8d25\uff1a' + String(e && e.message || e)); });
+  }
+
+  return h('div', { className: 'dshm-update' },
+    h('div', { className: 'dshm-update-title' }, '\u63d2\u4ef6\u6709\u66f4\u65b0\uff1av' + info.current + ' \u2192 v' + info.latest),
+    (info.changelog ? h('div', { className: 'dshm-update-log' }, info.changelog) : null),
+    h('div', { className: 'dshm-update-actions' },
+      h('button', { onClick: doIgnore, disabled: busyArr }, '\u5ffd\u7565'),
+      h('button', { onClick: doIgnoreVersion, disabled: busyArr }, '\u5ffd\u7565\u8fd9\u4e2a\u7248\u672c'),
+      h('button', { onClick: doUpdate, disabled: busyArr }, busyArr ? '\u66f4\u65b0\u4e2d\u2026' : '\u66f4\u65b0'),
+      (msgArr ? h('span', { className: 'dshm-update-msg' }, msgArr) : null)));
+}
+
 function MemorySettings() {
   var tab = React.useState('config');
   var setTab = tab[1]; tab = tab[0];
@@ -687,16 +724,31 @@ function MemorySettings() {
   var setStats = stats[1]; stats = stats[0];
   var status = React.useState('');
   var setStatus = status[1]; status = status[0];
+  var upd = React.useState(null);
+  var setUpd = upd[1]; upd = upd[0];
 
   function refresh() {
     apiGet('/config').then(setCfg).catch(function (e) { setStatus('\u8bfb\u53d6\u914d\u7f6e\u5931\u8d25\uff1a' + String(e && e.message || e)); });
     apiGet('/stats').then(setStats).catch(function () {});
   }
   React.useEffect(refresh, []);
+  // 打开设置时检查一次更新（宿主端有 1h 缓存，不会频繁请求 GitHub）
+  React.useEffect(function () { apiGet('/update/check').then(setUpd).catch(function () {}); }, []);
+
+  function onUpdateDone(r) {
+    if (r && r.action === 'updated') {
+      setStatus('\u2714 \u5df2\u66f4\u65b0\u5230 v' + r.to + '\uff0c\u91cd\u542f dsh web \u540e\u751f\u6548');
+      refresh();
+    }
+    setUpd(null); // dismiss / ignoreVersion / updated 都收起横幅
+  }
+  var ignoredV = String((cfg && cfg.ignoredUpdateVersion) || (upd && upd.ignoredVersion) || '');
+  var showUpdate = !!(upd && upd.ok && upd.hasUpdate && String(upd.latest) !== ignoredV);
 
   ensureCSS();
 
   return h('div', { className: 'dshm-root' },
+    (showUpdate ? h(UpdateBanner, { info: upd, onDone: onUpdateDone }) : null),
     h('div', { className: 'dshm-tabs' },
       h('button', { className: 'dshm-tab' + (tab === 'config' ? ' dshm-tab-on' : ''), onClick: function () { setTab('config'); } }, '\u914d\u7f6e'),
       h('button', { className: 'dshm-tab' + (tab === 'browse' ? ' dshm-tab-on' : ''), onClick: function () { setTab('browse'); } }, '\u8bb0\u5fc6\u5e93'),

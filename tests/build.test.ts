@@ -21,6 +21,21 @@ describe('dsh-memory build artifacts', () => {
     expect(src).toContain('memory_search')
   })
 
+  it('host bundle ships the self-update endpoints', () => {
+    const src = readFileSync(resolve(root, 'lib/index.js'), 'utf8')
+    expect(src).toContain('/memory/api/update/check')
+    expect(src).toContain('/memory/api/update/ignore')
+    expect(src).toContain('/memory/api/update/run')
+    expect(src).toContain('raw.githubusercontent.com/10110me/dsh-memory')
+  })
+
+  it('client bundle renders the update banner with three actions', () => {
+    const src = readFileSync(resolve(root, 'client/client.js'), 'utf8')
+    expect(src).toContain('dshm-update')
+    expect(src).toContain('/update/ignore')
+    expect(src).toContain('/update/run')
+  })
+
   it('client bundle is a __ModuleLoader__ closure factory', () => {
     const src = readFileSync(resolve(root, 'client/client.js'), 'utf8')
     // banner

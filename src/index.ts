@@ -1,3 +1,6 @@
+import { readFileSync, promises as fsp } from 'node:fs'
+import * as nodePath from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
@@ -47,6 +50,7 @@ type EmbedConfig = {
   enabled: boolean
   organizeWithModel: boolean
   maxNodes: number
+  ignoredUpdateVersion: string
 }
 
 /** Structural subset of the DSH fs service used by this plugin. */
@@ -97,9 +101,59 @@ const DEFAULT_CONFIG = {
   enabled: false,
   organizeWithModel: true,
   maxNodes: 50,
+  ignoredUpdateVersion: '',
 }
 
 const EMBED_SCRIPT = `let b='';process.stdin.setEncoding('utf8');process.stdin.on('data',function(d){b+=d});process.stdin.on('end',async function(){try{var q=JSON.parse(b);var body={model:q.model,input:q.input};if(q.dimensions)body.dimensions=q.dimensions;var r=await fetch(q.url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+(q.key||'')},body:JSON.stringify(body)});var t=await r.text();process.stdout.write(JSON.stringify({ok:r.ok,status:r.status,body:t}));}catch(e){process.stdout.write(JSON.stringify({ok:false,status:0,body:String((e&&e.message)||e)}));}})`
+
+// Generic HTTP runner for GitHub update checks/downloads (same proven
+// subprocess pattern as EMBED_SCRIPT — network happens in a child node).
+const FETCH_SCRIPT = `let b='';process.stdin.setEncoding('utf8');process.stdin.on('data',function(d){b+=d});process.stdin.on('end',async function(){try{var q=JSON.parse(b);var r=await fetch(q.url,{method:q.method||'GET',headers:q.headers||{}});var t=await r.text();process.stdout.write(JSON.stringify({ok:r.ok,status:r.status,body:t}));}catch(e){process.stdout.write(JSON.stringify({ok:false,status:0,body:String((e&&e.message)||e)}));}})`
+
+// ── Self-update (touches ONLY files inside this package directory) ────────
+const UPDATE_REPO_RAW = 'https://raw.githubusercontent.com/10110me/dsh-memory/main/'
+/** Runtime files replaced during an update, relative to the package root. */
+const UPDATE_FILES = [
+  'package.json',
+  'cordis.patch.yml',
+  'README.md',
+  'LICENSE',
+  'CHANGELOG.md',
+  'lib/index.js',
+  'lib/index.d.ts',
+  'client/client.js',
+  'client/client.d.ts',
+  'src/index.ts',
+  'src/client/index.tsx',
+]
+const UPDATE_TMP_DIR = '.dsh-update-tmp'
+
+/** This package's root directory (…/node_modules/dsh-memory), derived from the running bundle. */
+function ownPackageDir(): string {
+  // lib/index.js → up one level
+  return nodePath.resolve(nodePath.dirname(fileURLToPath(import.meta.url)), '..')
+}
+
+function parseVersion(v: string): number[] {
+  const core = String(v || '').trim().replace(/^v/, '').split('-')[0]
+  return core.split('.').map(function (n) { return parseInt(n, 10) || 0 })
+}
+function isNewerVersion(candidate: string, current: string): boolean {
+  const a = parseVersion(candidate), b = parseVersion(current)
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] || 0) > (b[i] || 0)) return true
+    if ((a[i] || 0) < (b[i] || 0)) return false
+  }
+  return false
+}
+
+/** Version of the currently running package (read once from our own package.json). */
+const CURRENT_VERSION: string = (function () {
+  try {
+    const pkg = JSON.parse(readFileSync(nodePath.join(ownPackageDir(), 'package.json'), 'utf8'))
+    return String(pkg.version || '0.0.0')
+  } catch (e) { return '0.0.0' }
+})()
 
 function nowSec() { return Math.floor(Date.now() / 1000) }
 function uid() { return 'mem-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) }
@@ -210,10 +264,10 @@ export function apply(ctx: Context): void {
     let base = String(cfg.apiBase || '')
     while (base.length && base.charAt(base.length - 1) === '/') base = base.slice(0, -1)
     if (!base) throw new Error('embedding apiBase not configured')
-    const nodePath = await resolveNode()
+    const nodeExe = await resolveNode()
     const payload = { url: base + '/embeddings', key: cfg.apiKey || '', model: cfg.model || 'text-embedding-3-small', input: texts, dimensions: cfg.dimensions > 0 ? cfg.dimensions : undefined }
     const handle = subprocess.spawn({
-      argv: [nodePath, '-e', EMBED_SCRIPT],
+      argv: [nodeExe, '-e', EMBED_SCRIPT],
       cwd: root || '.',
       stdio: { stdin: { data: JSON.stringify(payload) }, stdout: { maxBytes: 8 * 1024 * 1024 }, stderr: { maxBytes: 256 * 1024 } },
       graceMs: 5000,
@@ -228,6 +282,84 @@ export function apply(ctx: Context): void {
     try { body = JSON.parse(parsed.body) } catch (e) { throw new Error('embed response not JSON') }
     if (!body || !Array.isArray(body.data) || !body.data.length) throw new Error('embed response missing data[]')
     return body.data.map(function (d: { embedding: number[] }) { return d.embedding })
+  }
+
+  // ── Self-update machinery (network via child node, writes only inside own package dir) ──
+
+  let updateCache: { at: number; result: unknown } | null = null
+  const UPDATE_TTL = 3600 // seconds between GitHub checks
+  let updateRunning = false
+
+  async function httpViaNode(url: string, method?: string): Promise<{ ok: boolean; status: number; body: string }> {
+    if (!subprocess) throw new Error('subprocess service unavailable')
+    const nodeExe = await resolveNode()
+    const handle = subprocess.spawn({
+      argv: [nodeExe, '-e', FETCH_SCRIPT],
+      cwd: root || '.',
+      stdio: { stdin: { data: JSON.stringify({ url, method: method || 'GET' }) }, stdout: { maxBytes: 16 * 1024 * 1024 }, stderr: { maxBytes: 64 * 1024 } },
+      graceMs: 20000,
+    })
+    await handle.done
+    const out = handle.collected && handle.collected.stdout ? handle.collected.stdout.readFrom(0).text : ''
+    return JSON.parse(String(out).trim())
+  }
+
+  async function checkForUpdate(force?: boolean): Promise<{ ok: boolean; current: string; latest?: string; hasUpdate?: boolean; changelog?: string; error?: string; checkedAt: number }> {
+    const now = nowSec()
+    if (!force && updateCache && now - updateCache.at < UPDATE_TTL) return updateCache.result as { ok: boolean; current: string; checkedAt: number }
+    try {
+      const pkgRes = await httpViaNode(UPDATE_REPO_RAW + 'package.json')
+      if (!pkgRes.ok) throw new Error('GitHub HTTP ' + pkgRes.status)
+      const latest = String(JSON.parse(pkgRes.body).version || '')
+      let changelog = ''
+      try {
+        const cl = await httpViaNode(UPDATE_REPO_RAW + 'CHANGELOG.md')
+        if (cl.ok) changelog = String(cl.body || '').slice(0, 4000)
+      } catch (e) {}
+      const result = { ok: true, current: CURRENT_VERSION, latest, hasUpdate: isNewerVersion(latest, CURRENT_VERSION), changelog, checkedAt: nowSec() }
+      updateCache = { at: nowSec(), result }
+      return result
+    } catch (e) {
+      return { ok: false, current: CURRENT_VERSION, error: String(e && (e as Error).message || e), checkedAt: nowSec() }
+    }
+  }
+
+  async function runSelfUpdate(): Promise<{ ok: boolean; from?: string; to?: string; restartRequired?: boolean; error?: string }> {
+    if (updateRunning) return { ok: false, error: 'update already in progress' }
+    const check = await checkForUpdate(true)
+    if (!check.ok || !check.latest) return { ok: false, error: check.error || 'cannot determine latest version' }
+    if (!isNewerVersion(check.latest, CURRENT_VERSION)) return { ok: false, error: 'already up to date (' + CURRENT_VERSION + ')' }
+    updateRunning = true
+    const base = ownPackageDir()
+    const tmp = nodePath.join(base, UPDATE_TMP_DIR)
+    try {
+      // 1) download every runtime file into a staging dir inside our own package
+      await fsp.rm(tmp, { recursive: true, force: true })
+      for (const rel of UPDATE_FILES) {
+        const r = await httpViaNode(UPDATE_REPO_RAW + rel)
+        if (!r.ok || !r.body || !r.body.length) throw new Error('download failed: ' + rel + ' (HTTP ' + r.status + ')')
+        const target = nodePath.join(tmp, rel)
+        await fsp.mkdir(nodePath.dirname(target), { recursive: true })
+        await fsp.writeFile(target, r.body, 'utf8')
+      }
+      // 2) verify the staged package really is newer before touching anything live
+      const staged = JSON.parse(await fsp.readFile(nodePath.join(tmp, 'package.json'), 'utf8'))
+      if (!isNewerVersion(String(staged.version || ''), CURRENT_VERSION)) throw new Error('staged version is not newer than ' + CURRENT_VERSION)
+      // 3) swap staged files into place — only this package directory is touched
+      for (const rel of UPDATE_FILES) {
+        const dst = nodePath.join(base, rel)
+        await fsp.mkdir(nodePath.dirname(dst), { recursive: true })
+        await fsp.copyFile(nodePath.join(tmp, rel), dst)
+      }
+      // 4) clean staging
+      await fsp.rm(tmp, { recursive: true, force: true })
+      return { ok: true, from: CURRENT_VERSION, to: String(staged.version), restartRequired: true }
+    } catch (e) {
+      try { await fsp.rm(tmp, { recursive: true, force: true }) } catch (e2) {}
+      return { ok: false, error: String(e && (e as Error).message || e) }
+    } finally {
+      updateRunning = false
+    }
   }
 
   async function organizeWithModel(content: string, type: MemoryType, cfg: EmbedConfig, signal?: { aborted?: boolean }): Promise<{ summary: string; content: string; tags: string[]; entities: string[] } | null> {
@@ -260,7 +392,7 @@ export function apply(ctx: Context): void {
   }
 
   function publicConfig() {
-    return { apiBase: config.apiBase, apiKey: config.apiKey, model: config.model, dimensions: config.dimensions, enabled: config.enabled, organizeWithModel: config.organizeWithModel, maxNodes: config.maxNodes }
+    return { apiBase: config.apiBase, apiKey: config.apiKey, model: config.model, dimensions: config.dimensions, enabled: config.enabled, organizeWithModel: config.organizeWithModel, maxNodes: config.maxNodes, ignoredUpdateVersion: config.ignoredUpdateVersion || '', version: CURRENT_VERSION }
   }
 
   function memoryView(m: Memory): { id: string; type: MemoryType; summary: string; content: string; tags: string[]; entities: string[]; createdAt: number; updatedAt: number } {
@@ -449,6 +581,7 @@ interface HttpResponseLike {
           if (typeof p.enabled === 'boolean') config.enabled = p.enabled
           if (typeof p.organizeWithModel === 'boolean') config.organizeWithModel = p.organizeWithModel
           if (p.maxNodes !== undefined) config.maxNodes = Math.max(3, Math.min(200, Number(p.maxNodes) || 50))
+          if (typeof p.ignoredUpdateVersion === 'string') config.ignoredUpdateVersion = p.ignoredUpdateVersion
           await persistConfig()
           return sendJson(res, 200, publicConfig())
         }
@@ -506,6 +639,23 @@ interface HttpResponseLike {
           kwIndex = null
           await persistStore()
           return sendJson(res, 200, { ok: true })
+        }
+
+        if (method === 'GET' && path === '/memory/api/update/check') {
+          await ensureLoaded()
+          const r = await checkForUpdate(url.searchParams.get('force') === '1')
+          return sendJson(res, 200, Object.assign({}, r, { ignoredVersion: config.ignoredUpdateVersion || '' }))
+        }
+        if (method === 'POST' && path === '/memory/api/update/ignore') {
+          const body = JSON.parse(await readBody(req))
+          config.ignoredUpdateVersion = String(body.version || '')
+          updateCache = null
+          await persistConfig()
+          return sendJson(res, 200, publicConfig())
+        }
+        if (method === 'POST' && path === '/memory/api/update/run') {
+          const r = await runSelfUpdate()
+          return sendJson(res, 200, r)
         }
 
         res.writeHead(404, { 'Content-Type': 'application/json' })
