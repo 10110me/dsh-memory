@@ -2,6 +2,10 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.3
+
+- Fixed graph collapse: a whole entity group could shrink to a single point when two entity names hashed to the same starting position — the zero-distance repulsion then produced NaN and poisoned every position in that connected component. Initial positions now use a stronger rolling hash plus golden-ratio per-index jitter, coinciding pairs get a random nudge before the repulsion force, and any non-finite coordinate is reset during layout.
+
 ## 1.1.2
 
 - Localized changelog: a Chinese changelog (CHANGELOG.zh.md) is fetched alongside the English one, and the update banner picks the right language automatically based on the browser/UI language.

@@ -171,11 +171,13 @@ function GraphCanvas(props) {
 			var n = members.length;
 			if (!n) return;
 			members.forEach(function(nid, mi) {
-				var seed = 0;
-				for (var j = 0; j < nid.length; j++) seed += nid.charCodeAt(j);
+				var seed = 5381;
+				for (var j = 0; j < nid.length; j++) seed = seed * 31 + nid.charCodeAt(j) >>> 0;
+				var rx = (Math.abs(Math.sin(seed)) * .9 + mi * .6180339887) % .9;
+				var ry = (Math.abs(Math.cos(seed * 1.7)) * .9 + mi * .3819660113) % .9;
 				posRef.current[nid] = {
-					x: cellX0 + padX + Math.abs(Math.sin(seed)) * .9 * boxW,
-					y: cellY0 + padY + Math.abs(Math.cos(seed * 1.7)) * .9 * boxH,
+					x: cellX0 + padX + rx * boxW,
+					y: cellY0 + padY + ry * boxH,
 					vx: 0,
 					vy: 0
 				};
@@ -218,7 +220,12 @@ function GraphCanvas(props) {
 					var a = posRef.current[members[i]], b = posRef.current[members[j]];
 					var dx = a.x - b.x, dy = a.y - b.y;
 					var d2 = dx * dx + dy * dy;
-					var d = Math.sqrt(d2) || 1;
+					if (!(d2 > 1e-6)) {
+						dx = (i % 2 === 0 ? 1 : -1) * (.5 + Math.random());
+						dy = (j % 2 === 0 ? -1 : 1) * (.5 + Math.random());
+						d2 = dx * dx + dy * dy;
+					}
+					var d = Math.sqrt(d2);
 					var f = rep / d2 / Math.max(1, d);
 					var fx = dx / d * f, fy = dy / d * f;
 					a.vx += fx;
@@ -247,6 +254,10 @@ function GraphCanvas(props) {
 					var p = posRef.current[nid];
 					p.x += Math.max(-maxSpd, Math.min(maxSpd, p.vx));
 					p.y += Math.max(-maxSpd, Math.min(maxSpd, p.vy));
+					if (!isFinite(p.x) || !isFinite(p.y)) {
+						p.x = cellX0 + padX + padIn + Math.random() * Math.max(1, boxW - padIn * 2);
+						p.y = cellY0 + padY + padIn + Math.random() * Math.max(1, boxH - padIn * 2);
+					}
 					clamp(p);
 				});
 				for (var s = 0; s < 8; s++) {

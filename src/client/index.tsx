@@ -172,11 +172,13 @@ function GraphCanvas(props) {
       var n = members.length;
       if (!n) return;
 
-      // 初始：均匀放在块内（带确定性扰动避免全部挤中心）
+      // 初始：均匀放在块内（确定性哈希散布 + 黄金比例索引扰动，保证互不重合）
       members.forEach(function (nid, mi) {
-        var seed = 0;
-        for (var j = 0; j < nid.length; j++) seed += nid.charCodeAt(j);
-        posRef.current[nid] = { x: cellX0 + padX + (Math.abs(Math.sin(seed)) * 0.9) * boxW, y: cellY0 + padY + (Math.abs(Math.cos(seed * 1.7)) * 0.9) * boxH, vx: 0, vy: 0 };
+        var seed = 5381;
+        for (var j = 0; j < nid.length; j++) seed = ((seed * 31) + nid.charCodeAt(j)) >>> 0;
+        var rx = (Math.abs(Math.sin(seed)) * 0.9 + mi * 0.6180339887) % 0.9;
+        var ry = (Math.abs(Math.cos(seed * 1.7)) * 0.9 + mi * 0.3819660113) % 0.9;
+        posRef.current[nid] = { x: cellX0 + padX + rx * boxW, y: cellY0 + padY + ry * boxH, vx: 0, vy: 0 };
       });
 
       // 力导向迭代：斥力防重叠，引力沿边聚拢到理想间距
@@ -211,7 +213,9 @@ function GraphCanvas(props) {
             var a = posRef.current[members[i]], b = posRef.current[members[j]];
             var dx = a.x - b.x, dy = a.y - b.y;
             var d2 = dx * dx + dy * dy;
-            var d = Math.sqrt(d2) || 1;
+            // 零距离保护：完全重合时给随机方向，避免 rep/0 产生 NaN 毒化整团布局
+            if (!(d2 > 1e-6)) { dx = (i % 2 === 0 ? 1 : -1) * (0.5 + Math.random()); dy = (j % 2 === 0 ? -1 : 1) * (0.5 + Math.random()); d2 = dx * dx + dy * dy; }
+            var d = Math.sqrt(d2);
             var f = rep / d2 / Math.max(1, d);
             var fx = dx / d * f, fy = dy / d * f;
             a.vx += fx; a.vy += fy;
@@ -234,11 +238,12 @@ function GraphCanvas(props) {
             pb.vx -= fx2; pb.vy -= fy2;
           }
         });
-        // 更新位置（限速）+ 夹在块内
+        // 更新位置（限速）+ NaN 兜底 + 夹在块内
         members.forEach(function (nid) {
           var p = posRef.current[nid];
           p.x += Math.max(-maxSpd, Math.min(maxSpd, p.vx));
           p.y += Math.max(-maxSpd, Math.min(maxSpd, p.vy));
+          if (!isFinite(p.x) || !isFinite(p.y)) { p.x = cellX0 + padX + padIn + Math.random() * Math.max(1, boxW - padIn * 2); p.y = cellY0 + padY + padIn + Math.random() * Math.max(1, boxH - padIn * 2); }
           clamp(p);
         });
         // 硬分离：把过近的节点强制推开（保证最小间距）
