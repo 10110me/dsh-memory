@@ -2,6 +2,11 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.6
+
+- The layout coordinate space is now unbounded: each connected component gets a region sized by its node count (fixed generous 130px ideal spacing, 90px minimum), regions are shelf-packed into a large virtual canvas, and the view auto-fits (scale + center) so everything is visible. No more compressing nodes to squeeze them into a fixed box — overlap at any node count is impossible by construction.
+- View auto-fits after every relayout (first open, reset, entity-count change); zoom range stays 5%–800% for exploring the full spread.
+
 ## 1.1.5
 
 - Fixed persistent node overlap: spacing is now adaptive — ideal and minimum distances are capped by the largest spacing that can physically fit the visible node count inside the canvas, so constraints are always satisfiable (50 nodes at a fixed 85px minimum simply cannot fit a 660px-wide canvas). Taller canvas (620px) and more layout iterations support this.

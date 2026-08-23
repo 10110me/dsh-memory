@@ -127,6 +127,7 @@ function GraphCanvas(props) {
   var setSelected = selArr[1]; var sel = selArr[0];
   var lineWArr = React.useState(1.2);
   var setLineW = lineWArr[1]; lineWArr = lineWArr[0];
+  var needFitRef = React.useRef(false);
 
   // ── 并查集：计算连通分量 ──
   var ufParent = {};
@@ -159,17 +160,29 @@ function GraphCanvas(props) {
       (groups[root] = groups[root] || []).push(n.id);
     });
     var groupIds = Object.keys(groups);
-    var numGroups = groupIds.length;
-    // 画布分块（块之间留大片 padding，让分量明显分开）
-    var cols = Math.max(1, Math.ceil(Math.sqrt(numGroups)));
-    var rows = Math.max(1, Math.ceil(numGroups / cols));
-    var cellW = W / cols, cellH = H / rows;
-    var padX = 30, padY = 30, padIn = 20;
+    // 画布只是窗口，坐标系可以无限大：每个连通分量按节点数分到一块「够大」的
+    // 区域，各区域货架式排布成一张大图，最后自适应缩放视野把全部内容装进窗口。
+    // 节点间距因此永远是宽松的固定值，不再为了塞进窗口而互相挤压。
+    var idealBase = 130, minDistBase = 90;
+    var sides = {}, maxSide = 0;
+    groupIds.forEach(function (gid) {
+      var s = Math.ceil(Math.sqrt(groups[gid].length)) * idealBase + 80;
+      sides[gid] = s; if (s > maxSide) maxSide = s;
+    });
+    var rowW = Math.max(W * 1.5, maxSide);
+    var regions = {};
+    var curX = 0, curY = 0, rowH = 0;
+    groupIds.slice().sort(function (a, b) { return sides[b] - sides[a]; }).forEach(function (gid) {
+      var s = sides[gid];
+      if (curX > 0 && curX + s > rowW) { curX = 0; curY += rowH + 70; rowH = 0; }
+      regions[gid] = { x: curX, y: curY, w: s, h: s };
+      curX += s + 70;
+      if (s > rowH) rowH = s;
+    });
 
-    groupIds.forEach(function (gid, gi) {
-      var col = gi % cols, row = Math.floor(gi / cols);
-      var cellX0 = cellW * col, cellY0 = cellH * row;
-      var boxW = cellW - padX * 2, boxH = cellH - padY * 2;
+    groupIds.forEach(function (gid) {
+      var reg = regions[gid];
+      var boxW = reg.w, boxH = reg.h;
       var members = groups[gid];
       var n = members.length;
       if (!n) return;
@@ -180,23 +193,19 @@ function GraphCanvas(props) {
         for (var j = 0; j < nid.length; j++) seed = ((seed * 31) + nid.charCodeAt(j)) >>> 0;
         var rx = (Math.abs(Math.sin(seed)) * 0.9 + mi * 0.6180339887) % 0.9;
         var ry = (Math.abs(Math.cos(seed * 1.7)) * 0.9 + mi * 0.3819660113) % 0.9;
-        posRef.current[nid] = { x: cellX0 + padX + rx * boxW, y: cellY0 + padY + ry * boxH, vx: 0, vy: 0 };
+        posRef.current[nid] = { x: reg.x + 40 + rx * (boxW - 80), y: reg.y + 40 + ry * (boxH - 80), vx: 0, vy: 0 };
       });
 
-      // 力导向迭代：斥力防重叠，引力沿边聚拢到理想间距
-      // 间距自适应：先算这块区域能铺下 n 个节点的最大可行间距，
-      // 理想间距与最小间距都不超过它——否则约束物理上不可满足，必然重叠
-      var area = Math.max(1, boxW * boxH);
-      var fit = Math.sqrt((area * 0.72) / Math.max(1, n));
-      var ideal = Math.min(boxW, boxH) / Math.max(2.2, Math.sqrt(n)) * 1.9;
-      ideal = Math.max(70, Math.min(140, Math.min(ideal, fit)));
-      var rep = 18000; // 斥力强度（1/d² 反比）
+      // 力导向迭代：间距固定宽松——坐标系无限大，不需要为塞进窗口而挤压
+      var ideal = idealBase;     // 目标间距 130px
+      var rep = 24000;           // 斥力强度（1/d² 反比）
       var maxSpd = 7;
-      var minDist = Math.max(30, Math.min(85, fit * 0.78));
+      var minDist = minDistBase; // 硬最小间距 90px
 
+      var mX = boxW * 0.22, mY = boxH * 0.22; // 允许向区域外扩一点呼吸空间
       function clamp(p) {
-        p.x = Math.max(cellX0 + padX + padIn, Math.min(cellX0 + cellW - padX - padIn, p.x));
-        p.y = Math.max(cellY0 + padY + padIn, Math.min(cellY0 + cellH - padY - padIn, p.y));
+        p.x = Math.max(reg.x - mX, Math.min(reg.x + boxW + mX, p.x));
+        p.y = Math.max(reg.y - mY, Math.min(reg.y + boxH + mY, p.y));
       }
       function disp(p, q, want) {
         var dx = p.x - q.x, dy = p.y - q.y;
@@ -249,7 +258,7 @@ function GraphCanvas(props) {
           var p = posRef.current[nid];
           p.x += Math.max(-maxSpd, Math.min(maxSpd, p.vx));
           p.y += Math.max(-maxSpd, Math.min(maxSpd, p.vy));
-          if (!isFinite(p.x) || !isFinite(p.y)) { p.x = cellX0 + padX + padIn + Math.random() * Math.max(1, boxW - padIn * 2); p.y = cellY0 + padY + padIn + Math.random() * Math.max(1, boxH - padIn * 2); }
+          if (!isFinite(p.x) || !isFinite(p.y)) { p.x = reg.x + 40 + Math.random() * Math.max(1, boxW - 80); p.y = reg.y + 40 + Math.random() * Math.max(1, boxH - 80); }
           clamp(p);
         });
         // 硬分离：把过近的节点强制推开（保证最小间距）
@@ -267,8 +276,33 @@ function GraphCanvas(props) {
       members.forEach(function (nid) { var p = posRef.current[nid]; delete p.vx; delete p.vy; });
     });
 
-    // 渲染时读取位置不需要 vx/vy
+    // 布局变了，挂载/更新后自动把视野调整到能看全
+    needFitRef.current = true;
     return;
+  }
+
+  // 把整个图谱自适应装进当前窗口（内容可以比窗口大，靠缩放看全）
+  function fitView() {
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nodes.forEach(function (nn) {
+      var p = posRef.current[nn.id];
+      if (!p) return;
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    });
+    if (!(maxX >= minX)) return;
+    needFitRef.current = false;
+    var pad = 46;
+    var bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
+    var k = Math.min(1.25, (W - pad * 2) / bw, (H - pad * 2) / bh);
+    k = Math.max(0.05, Math.min(k, 1.25));
+    viewRef.current.k = k;
+    viewRef.current.tx = (W - bw * k) / 2 - minX * k;
+    viewRef.current.ty = (H - bh * k) / 2 - minY * k;
+    applyView();
+    setZoomPct(Math.round(viewRef.current.k * 100));
   }
 
   // 首次初始化
@@ -390,13 +424,10 @@ function GraphCanvas(props) {
   }
 
   function reset() {
-    var v = viewRef.current;
-    v.k = 1; v.tx = 0; v.ty = 0;
-    applyView();
-    setZoomPct(100);
     setSelected(null);
     posRef.current = {};
     layoutPositions();
+    fitView(); // 视野自适应装下整个布局（不再硬编码 100%）
     nodes.forEach(function (n) { syncNode(n.id); });
     for (var i = 0; i < edges.length; i++) syncLine(i);
     if (props.onReset) props.onReset(); // 重置也恢复会话级设置（实体数量回默认 50）
@@ -416,6 +447,11 @@ function GraphCanvas(props) {
       if (el) el.removeEventListener('wheel', wheel);
     };
   }, []);
+
+  // 布局（重新）计算后，把视野自适应到能看全整个图谱
+  React.useEffect(function () {
+    if (needFitRef.current) fitView();
+  }, [nodes.length]);
 
   // ── 高亮集合 ──
   var hlNodes = {}, hlEdges = {};

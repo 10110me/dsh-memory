@@ -121,6 +121,7 @@ function GraphCanvas(props) {
 	var lineWArr = react.default.useState(1.2);
 	var setLineW = lineWArr[1];
 	lineWArr = lineWArr[0];
+	var needFitRef = react.default.useRef(false);
 	var ufParent = {};
 	function ufFind(x) {
 		if (ufParent[x] === void 0) {
@@ -158,15 +159,37 @@ function GraphCanvas(props) {
 			(groups[root] = groups[root] || []).push(n.id);
 		});
 		var groupIds = Object.keys(groups);
-		var numGroups = groupIds.length;
-		var cols = Math.max(1, Math.ceil(Math.sqrt(numGroups)));
-		var rows = Math.max(1, Math.ceil(numGroups / cols));
-		var cellW = W / cols, cellH = H / rows;
-		var padX = 30, padY = 30, padIn = 20;
-		groupIds.forEach(function(gid, gi) {
-			var col = gi % cols, row = Math.floor(gi / cols);
-			var cellX0 = cellW * col, cellY0 = cellH * row;
-			var boxW = cellW - padX * 2, boxH = cellH - padY * 2;
+		var idealBase = 130, minDistBase = 90;
+		var sides = {}, maxSide = 0;
+		groupIds.forEach(function(gid) {
+			var s = Math.ceil(Math.sqrt(groups[gid].length)) * idealBase + 80;
+			sides[gid] = s;
+			if (s > maxSide) maxSide = s;
+		});
+		var rowW = Math.max(W * 1.5, maxSide);
+		var regions = {};
+		var curX = 0, curY = 0, rowH = 0;
+		groupIds.slice().sort(function(a, b) {
+			return sides[b] - sides[a];
+		}).forEach(function(gid) {
+			var s = sides[gid];
+			if (curX > 0 && curX + s > rowW) {
+				curX = 0;
+				curY += rowH + 70;
+				rowH = 0;
+			}
+			regions[gid] = {
+				x: curX,
+				y: curY,
+				w: s,
+				h: s
+			};
+			curX += s + 70;
+			if (s > rowH) rowH = s;
+		});
+		groupIds.forEach(function(gid) {
+			var reg = regions[gid];
+			var boxW = reg.w, boxH = reg.h;
 			var members = groups[gid];
 			var n = members.length;
 			if (!n) return;
@@ -176,22 +199,20 @@ function GraphCanvas(props) {
 				var rx = (Math.abs(Math.sin(seed)) * .9 + mi * .6180339887) % .9;
 				var ry = (Math.abs(Math.cos(seed * 1.7)) * .9 + mi * .3819660113) % .9;
 				posRef.current[nid] = {
-					x: cellX0 + padX + rx * boxW,
-					y: cellY0 + padY + ry * boxH,
+					x: reg.x + 40 + rx * (boxW - 80),
+					y: reg.y + 40 + ry * (boxH - 80),
 					vx: 0,
 					vy: 0
 				};
 			});
-			var area = Math.max(1, boxW * boxH);
-			var fit = Math.sqrt(area * .72 / Math.max(1, n));
-			var ideal = Math.min(boxW, boxH) / Math.max(2.2, Math.sqrt(n)) * 1.9;
-			ideal = Math.max(70, Math.min(140, Math.min(ideal, fit)));
-			var rep = 18e3;
+			var ideal = idealBase;
+			var rep = 24e3;
 			var maxSpd = 7;
-			var minDist = Math.max(30, Math.min(85, fit * .78));
+			var minDist = minDistBase;
+			var mX = boxW * .22, mY = boxH * .22;
 			function clamp(p) {
-				p.x = Math.max(cellX0 + padX + padIn, Math.min(cellX0 + cellW - padX - padIn, p.x));
-				p.y = Math.max(cellY0 + padY + padIn, Math.min(cellY0 + cellH - padY - padIn, p.y));
+				p.x = Math.max(reg.x - mX, Math.min(reg.x + boxW + mX, p.x));
+				p.y = Math.max(reg.y - mY, Math.min(reg.y + boxH + mY, p.y));
 			}
 			function disp(p, q, want) {
 				var dx = p.x - q.x, dy = p.y - q.y;
@@ -257,8 +278,8 @@ function GraphCanvas(props) {
 					p.x += Math.max(-maxSpd, Math.min(maxSpd, p.vx));
 					p.y += Math.max(-maxSpd, Math.min(maxSpd, p.vy));
 					if (!isFinite(p.x) || !isFinite(p.y)) {
-						p.x = cellX0 + padX + padIn + Math.random() * Math.max(1, boxW - padIn * 2);
-						p.y = cellY0 + padY + padIn + Math.random() * Math.max(1, boxH - padIn * 2);
+						p.x = reg.x + 40 + Math.random() * Math.max(1, boxW - 80);
+						p.y = reg.y + 40 + Math.random() * Math.max(1, boxH - 80);
 					}
 					clamp(p);
 				});
@@ -278,6 +299,29 @@ function GraphCanvas(props) {
 				delete p.vy;
 			});
 		});
+		needFitRef.current = true;
+	}
+	function fitView() {
+		var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+		nodes.forEach(function(nn) {
+			var p = posRef.current[nn.id];
+			if (!p) return;
+			if (p.x < minX) minX = p.x;
+			if (p.y < minY) minY = p.y;
+			if (p.x > maxX) maxX = p.x;
+			if (p.y > maxY) maxY = p.y;
+		});
+		if (!(maxX >= minX)) return;
+		needFitRef.current = false;
+		var pad = 46;
+		var bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
+		var k = Math.min(1.25, (W - pad * 2) / bw, (H - pad * 2) / bh);
+		k = Math.max(.05, Math.min(k, 1.25));
+		viewRef.current.k = k;
+		viewRef.current.tx = (W - bw * k) / 2 - minX * k;
+		viewRef.current.ty = (H - bh * k) / 2 - minY * k;
+		applyView();
+		setZoomPct(Math.round(viewRef.current.k * 100));
 	}
 	if (nodes.some(function(n) {
 		return !posRef.current[n.id];
@@ -427,15 +471,10 @@ function GraphCanvas(props) {
 		dragRef.current = null;
 	}
 	function reset() {
-		var v = viewRef.current;
-		v.k = 1;
-		v.tx = 0;
-		v.ty = 0;
-		applyView();
-		setZoomPct(100);
 		setSelected(null);
 		posRef.current = {};
 		layoutPositions();
+		fitView();
 		nodes.forEach(function(n) {
 			syncNode(n.id);
 		});
@@ -463,6 +502,9 @@ function GraphCanvas(props) {
 			if (el) el.removeEventListener("wheel", wheel);
 		};
 	}, []);
+	react.default.useEffect(function() {
+		if (needFitRef.current) fitView();
+	}, [nodes.length]);
 	var hlNodes = {}, hlEdges = {};
 	var selNode = null;
 	if (sel) {
