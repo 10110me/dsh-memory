@@ -442,7 +442,8 @@ export function apply(ctx: Context): void {
     memories.forEach(function (m) { (m.entities || []).forEach(function (e) { if (e) freq[e] = (freq[e] || 0) + 1 }) })
     const all: GraphNode[] = Object.keys(freq).map(function (e) { return { id: e, label: e, weight: freq[e] } })
     all.sort(function (a, b) { return b.weight - a.weight })
-    const limit = Math.max(3, Math.min(200, Number(limitOverride !== undefined && limitOverride !== null && !Number.isNaN(limitOverride) ? limitOverride : (Number(config.maxNodes) || 50))))
+    const rawLimit = limitOverride !== undefined && limitOverride !== null && !Number.isNaN(limitOverride) ? Number(limitOverride) : (Number(config.maxNodes) || 50)
+    const limit = Math.max(1, Math.floor(Number(rawLimit) || 50))
     const top = all.slice(0, limit)
     const ids: Record<string, boolean> = {}
     top.forEach(function (n) { ids[n.id] = true })

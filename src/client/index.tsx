@@ -160,52 +160,29 @@ function GraphCanvas(props) {
       (groups[root] = groups[root] || []).push(n.id);
     });
     var groupIds = Object.keys(groups);
-    // 画布只是窗口，坐标系可以无限大：每个连通分量按节点数分到一块「够大」的
-    // 区域，各区域货架式排布成一张大图，最后自适应缩放视野把全部内容装进窗口。
-    // 节点间距因此永远是宽松的固定值，不再为了塞进窗口而互相挤压。
-    var idealBase = 130, minDistBase = 90;
-    var sides = {}, maxSide = 0;
+    // 画布只是窗口，坐标系可以无限大。两阶段布局：
+    // ① 每个连通分量在本地坐标系独立做力导向（间距固定宽松，永不挤压）
+    // ② 按「实测包围盒」紧凑排布各团（团间只留小空隙），最后视野自适应
+    var idealBase = 130, minDistBase = 90, groupGap = 56;
+    var boxes = {};
     groupIds.forEach(function (gid) {
-      var s = Math.ceil(Math.sqrt(groups[gid].length)) * idealBase + 80;
-      sides[gid] = s; if (s > maxSide) maxSide = s;
-    });
-    var rowW = Math.max(W * 1.5, maxSide);
-    var regions = {};
-    var curX = 0, curY = 0, rowH = 0;
-    groupIds.slice().sort(function (a, b) { return sides[b] - sides[a]; }).forEach(function (gid) {
-      var s = sides[gid];
-      if (curX > 0 && curX + s > rowW) { curX = 0; curY += rowH + 70; rowH = 0; }
-      regions[gid] = { x: curX, y: curY, w: s, h: s };
-      curX += s + 70;
-      if (s > rowH) rowH = s;
-    });
-
-    groupIds.forEach(function (gid) {
-      var reg = regions[gid];
-      var boxW = reg.w, boxH = reg.h;
       var members = groups[gid];
       var n = members.length;
       if (!n) return;
-
-      // 初始：均匀放在块内（确定性哈希散布 + 黄金比例索引扰动，保证互不重合）
+      var spanW = Math.ceil(Math.sqrt(n)) * idealBase + 120;
+      // 初始：确定性哈希散布 + 黄金比例索引扰动，保证互不重合
       members.forEach(function (nid, mi) {
         var seed = 5381;
         for (var j = 0; j < nid.length; j++) seed = ((seed * 31) + nid.charCodeAt(j)) >>> 0;
         var rx = (Math.abs(Math.sin(seed)) * 0.9 + mi * 0.6180339887) % 0.9;
         var ry = (Math.abs(Math.cos(seed * 1.7)) * 0.9 + mi * 0.3819660113) % 0.9;
-        posRef.current[nid] = { x: reg.x + 40 + rx * (boxW - 80), y: reg.y + 40 + ry * (boxH - 80), vx: 0, vy: 0 };
+        posRef.current[nid] = { x: 20 + rx * (spanW - 40), y: 20 + ry * (spanW - 40), vx: 0, vy: 0 };
       });
-
-      // 力导向迭代：间距固定宽松——坐标系无限大，不需要为塞进窗口而挤压
-      var ideal = idealBase;     // 目标间距 130px
-      var rep = 24000;           // 斥力强度（1/d² 反比）
-      var maxSpd = 7;
-      var minDist = minDistBase; // 硬最小间距 90px
-
-      var mX = boxW * 0.22, mY = boxH * 0.22; // 允许向区域外扩一点呼吸空间
+      var rep = 24000, maxSpd = 7;
+      var mX = spanW * 0.18;
       function clamp(p) {
-        p.x = Math.max(reg.x - mX, Math.min(reg.x + boxW + mX, p.x));
-        p.y = Math.max(reg.y - mY, Math.min(reg.y + boxH + mY, p.y));
+        p.x = Math.max(-mX, Math.min(spanW + mX, p.x));
+        p.y = Math.max(-mX, Math.min(spanW + mX, p.y));
       }
       function disp(p, q, want) {
         var dx = p.x - q.x, dy = p.y - q.y;
@@ -219,8 +196,9 @@ function GraphCanvas(props) {
         q.x -= dx / 2; q.y -= dy / 2;
         return 1;
       }
-
-      for (var iter = 0; iter < 90; iter++) {
+      // 大图自动降低迭代/清扫次数，保证 UI 不卡死
+      var iters = n <= 100 ? 90 : (n <= 300 ? 48 : 26);
+      for (var iter = 0; iter < iters; iter++) {
         members.forEach(function (nid) { var p = posRef.current[nid]; p.vx = 0; p.vy = 0; });
         // 斥力（两两，1/d²）
         for (var i = 0; i < n; i++) {
@@ -237,7 +215,7 @@ function GraphCanvas(props) {
             b.vx -= fx; b.vy -= fy;
           }
         }
-        // 引力（沿边弹簧力：对称作用两端，拉向 ideal 距离）
+        // 引力（沿边弹簧力：对称作用两端，拉向理想间距）
         members.forEach(function (nid) {
           var conns = localAdj[nid];
           if (!conns) return;
@@ -247,33 +225,58 @@ function GraphCanvas(props) {
             if (!pb) continue;
             var dx2 = pb.x - pa.x, dy2 = pb.y - pa.y;
             var dd = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
-            var stretch = (dd - ideal) * 0.10;
+            var stretch = (dd - idealBase) * 0.10;
             var fx2 = dx2 / dd * stretch, fy2 = dy2 / dd * stretch;
             pa.vx += fx2; pa.vy += fy2;
             pb.vx -= fx2; pb.vy -= fy2;
           }
         });
-        // 更新位置（限速）+ NaN 兜底 + 夹在块内
+        // 更新位置（限速）+ NaN 兜底 + 宽松夹取
         members.forEach(function (nid) {
           var p = posRef.current[nid];
           p.x += Math.max(-maxSpd, Math.min(maxSpd, p.vx));
           p.y += Math.max(-maxSpd, Math.min(maxSpd, p.vy));
-          if (!isFinite(p.x) || !isFinite(p.y)) { p.x = reg.x + 40 + Math.random() * Math.max(1, boxW - 80); p.y = reg.y + 40 + Math.random() * Math.max(1, boxH - 80); }
+          if (!isFinite(p.x) || !isFinite(p.y)) { p.x = 20 + Math.random() * Math.max(1, spanW - 40); p.y = 20 + Math.random() * Math.max(1, spanW - 40); }
           clamp(p);
         });
         // 硬分离：把过近的节点强制推开（保证最小间距）
-        for (var s = 0; s < 8; s++) {
+        var sweeps = n <= 300 ? 8 : 4;
+        for (var sw = 0; sw < sweeps; sw++) {
           var any = false;
           for (var i2 = 0; i2 < n; i2++) {
             for (var j2 = i2 + 1; j2 < n; j2++) {
-              if (disp(posRef.current[members[i2]], posRef.current[members[j2]], minDist)) { any = true; clamp(posRef.current[members[i2]]); clamp(posRef.current[members[j2]]); }
+              if (disp(posRef.current[members[i2]], posRef.current[members[j2]], minDistBase)) { any = true; clamp(posRef.current[members[i2]]); clamp(posRef.current[members[j2]]); }
             }
           }
           if (!any) break;
         }
       }
-      // 去掉速度字段
       members.forEach(function (nid) { var p = posRef.current[nid]; delete p.vx; delete p.vy; });
+      // 实测包围盒：真实占地通常远小于预估区域，用它排布各团才能靠近
+      var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+      members.forEach(function (nid) {
+        var p = posRef.current[nid];
+        if (p.x < bx0) bx0 = p.x;
+        if (p.y < by0) by0 = p.y;
+        if (p.x > bx1) bx1 = p.x;
+        if (p.y > by1) by1 = p.y;
+      });
+      boxes[gid] = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 };
+    });
+
+    // 第二阶段：按实测包围盒货架式紧凑排布（团与团之间只留 groupGap）
+    var order = groupIds.filter(function (g) { return boxes[g]; }).sort(function (a, b) { return boxes[b].w * boxes[b].h - boxes[a].w * boxes[a].h; });
+    var totA = 0;
+    order.forEach(function (g) { totA += (boxes[g].w + groupGap) * (boxes[g].h + groupGap); });
+    var rowW2 = Math.max(700, Math.ceil(Math.sqrt(totA * 1.15)));
+    var curX = 0, curY = 0, rowH = 0;
+    order.forEach(function (gid) {
+      var b = boxes[gid];
+      if (curX > 0 && curX + b.w > rowW2) { curX = 0; curY += rowH + groupGap; rowH = 0; }
+      var dxo = curX - b.x, dyo = curY - b.y;
+      groups[gid].forEach(function (nid) { var p = posRef.current[nid]; p.x += dxo; p.y += dyo; });
+      curX += b.w + groupGap;
+      if (b.h > rowH) rowH = b.h;
     });
 
     // 布局变了，挂载/更新后自动把视野调整到能看全
@@ -296,8 +299,9 @@ function GraphCanvas(props) {
     needFitRef.current = false;
     var pad = 46;
     var bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
-    var k = Math.min(1.25, (W - pad * 2) / bw, (H - pad * 2) / bh);
-    k = Math.max(0.05, Math.min(k, 1.25));
+    var kFit = Math.min((W - pad * 2) / bw, (H - pad * 2) / bh);
+    // 初始缩放下限 62%：内容特别大时宁可先看局部（可平移/缩小），不要一上来就缩得看不清
+    var k = Math.max(0.62, Math.min(1.25, kFit));
     viewRef.current.k = k;
     viewRef.current.tx = (W - bw * k) / 2 - minX * k;
     viewRef.current.ty = (H - bh * k) / 2 - minY * k;
@@ -743,7 +747,7 @@ function GraphView() {
   if (!data.nodes || !data.nodes.length) return h('div', { className: 'dshm-empty' }, '\u6682\u65e0\u5b9e\u4f53\u3002\u5148\u4fdd\u5b58\u51e0\u6761\u5e26\u5b9e\u4f53\uff08\u5173\u952e\u8bcd\uff09\u7684\u8bb0\u5fc6\u3002');
   var trunc = data.totalEntities > data.nodes.length;
   function applyLimit() {
-    var n = Math.max(3, Math.min(200, parseInt(limitInput, 10) || 50));
+    var n = Math.max(1, parseInt(limitInput, 10) || 50); // 不设上限：实体多少就画多少
     setLimitInput(String(n));
     if (n === appliedLimit) return; // 数量没变就不重新请求
     setAppliedLimit(n);
@@ -755,11 +759,11 @@ function GraphView() {
   var countModule = h('span', { className: 'dshm-mod dshm-mod-wid' },
     h('span', { className: 'dshm-label' }, '\u5b9e\u4f53\u6570\u91cf'),
     h('input', {
-      type: 'number', min: 3, max: 200, value: limitInput,
+      type: 'number', min: 1, value: limitInput,
       onChange: function (e) { setLimitInput(e.target.value); },
       onKeyDown: function (e) { if (e.key === 'Enter') applyLimit(); },
-      style: { width: '56px' },
-      title: '\u4ec5\u5bf9\u5f53\u524d\u6709\u6548\uff0c\u91cd\u65b0\u6253\u5f00\u540e\u6062\u590d\u9ed8\u8ba4 50',
+      style: { width: '64px' },
+      title: '\u4ec5\u5bf9\u5f53\u524d\u6709\u6548\uff0c\u91cd\u65b0\u6253\u5f00\u540e\u6062\u590d\u9ed8\u8ba4 50\uff1b\u4e0d\u8bbe\u4e0a\u9650',
     }),
     h('button', { onClick: applyLimit }, '\u5e94\u7528'));
   return h('div', { className: 'dshm-graph' },

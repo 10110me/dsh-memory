@@ -2,6 +2,12 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.7
+
+- Entity count is now unbounded: no 200 cap on the input or the API (defaults to 50 per session as before). Very large graphs automatically reduce layout iterations to stay responsive.
+- Clusters sit much closer together: groups are now packed by their measured bounding boxes after physics (56px gap), instead of pre-allocated slots that left large empty margins.
+- Initial view no longer zooms out too far: auto-fit has a 62% zoom floor — it starts on a readable close-up of the middle of the graph; pan/zoom out for the full picture.
+
 ## 1.1.6
 
 - The layout coordinate space is now unbounded: each connected component gets a region sized by its node count (fixed generous 130px ideal spacing, 90px minimum), regions are shelf-packed into a large virtual canvas, and the view auto-fits (scale + center) so everything is visible. No more compressing nodes to squeeze them into a fixed box — overlap at any node count is impossible by construction.

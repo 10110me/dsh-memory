@@ -159,60 +159,30 @@ function GraphCanvas(props) {
 			(groups[root] = groups[root] || []).push(n.id);
 		});
 		var groupIds = Object.keys(groups);
-		var idealBase = 130, minDistBase = 90;
-		var sides = {}, maxSide = 0;
+		var idealBase = 130, minDistBase = 90, groupGap = 56;
+		var boxes = {};
 		groupIds.forEach(function(gid) {
-			var s = Math.ceil(Math.sqrt(groups[gid].length)) * idealBase + 80;
-			sides[gid] = s;
-			if (s > maxSide) maxSide = s;
-		});
-		var rowW = Math.max(W * 1.5, maxSide);
-		var regions = {};
-		var curX = 0, curY = 0, rowH = 0;
-		groupIds.slice().sort(function(a, b) {
-			return sides[b] - sides[a];
-		}).forEach(function(gid) {
-			var s = sides[gid];
-			if (curX > 0 && curX + s > rowW) {
-				curX = 0;
-				curY += rowH + 70;
-				rowH = 0;
-			}
-			regions[gid] = {
-				x: curX,
-				y: curY,
-				w: s,
-				h: s
-			};
-			curX += s + 70;
-			if (s > rowH) rowH = s;
-		});
-		groupIds.forEach(function(gid) {
-			var reg = regions[gid];
-			var boxW = reg.w, boxH = reg.h;
 			var members = groups[gid];
 			var n = members.length;
 			if (!n) return;
+			var spanW = Math.ceil(Math.sqrt(n)) * idealBase + 120;
 			members.forEach(function(nid, mi) {
 				var seed = 5381;
 				for (var j = 0; j < nid.length; j++) seed = seed * 31 + nid.charCodeAt(j) >>> 0;
 				var rx = (Math.abs(Math.sin(seed)) * .9 + mi * .6180339887) % .9;
 				var ry = (Math.abs(Math.cos(seed * 1.7)) * .9 + mi * .3819660113) % .9;
 				posRef.current[nid] = {
-					x: reg.x + 40 + rx * (boxW - 80),
-					y: reg.y + 40 + ry * (boxH - 80),
+					x: 20 + rx * (spanW - 40),
+					y: 20 + ry * (spanW - 40),
 					vx: 0,
 					vy: 0
 				};
 			});
-			var ideal = idealBase;
-			var rep = 24e3;
-			var maxSpd = 7;
-			var minDist = minDistBase;
-			var mX = boxW * .22, mY = boxH * .22;
+			var rep = 24e3, maxSpd = 7;
+			var mX = spanW * .18;
 			function clamp(p) {
-				p.x = Math.max(reg.x - mX, Math.min(reg.x + boxW + mX, p.x));
-				p.y = Math.max(reg.y - mY, Math.min(reg.y + boxH + mY, p.y));
+				p.x = Math.max(-mX, Math.min(spanW + mX, p.x));
+				p.y = Math.max(-mX, Math.min(spanW + mX, p.y));
 			}
 			function disp(p, q, want) {
 				var dx = p.x - q.x, dy = p.y - q.y;
@@ -233,7 +203,8 @@ function GraphCanvas(props) {
 				q.y -= dy / 2;
 				return 1;
 			}
-			for (var iter = 0; iter < 90; iter++) {
+			var iters = n <= 100 ? 90 : n <= 300 ? 48 : 26;
+			for (var iter = 0; iter < iters; iter++) {
 				members.forEach(function(nid) {
 					var p = posRef.current[nid];
 					p.vx = 0;
@@ -265,7 +236,7 @@ function GraphCanvas(props) {
 						if (!pb) continue;
 						var dx2 = pb.x - pa.x, dy2 = pb.y - pa.y;
 						var dd = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
-						var stretch = (dd - ideal) * .1;
+						var stretch = (dd - idealBase) * .1;
 						var fx2 = dx2 / dd * stretch, fy2 = dy2 / dd * stretch;
 						pa.vx += fx2;
 						pa.vy += fy2;
@@ -278,14 +249,15 @@ function GraphCanvas(props) {
 					p.x += Math.max(-maxSpd, Math.min(maxSpd, p.vx));
 					p.y += Math.max(-maxSpd, Math.min(maxSpd, p.vy));
 					if (!isFinite(p.x) || !isFinite(p.y)) {
-						p.x = reg.x + 40 + Math.random() * Math.max(1, boxW - 80);
-						p.y = reg.y + 40 + Math.random() * Math.max(1, boxH - 80);
+						p.x = 20 + Math.random() * Math.max(1, spanW - 40);
+						p.y = 20 + Math.random() * Math.max(1, spanW - 40);
 					}
 					clamp(p);
 				});
-				for (var s = 0; s < 8; s++) {
+				var sweeps = n <= 300 ? 8 : 4;
+				for (var sw = 0; sw < sweeps; sw++) {
 					var any = false;
-					for (var i2 = 0; i2 < n; i2++) for (var j2 = i2 + 1; j2 < n; j2++) if (disp(posRef.current[members[i2]], posRef.current[members[j2]], minDist)) {
+					for (var i2 = 0; i2 < n; i2++) for (var j2 = i2 + 1; j2 < n; j2++) if (disp(posRef.current[members[i2]], posRef.current[members[j2]], minDistBase)) {
 						any = true;
 						clamp(posRef.current[members[i2]]);
 						clamp(posRef.current[members[j2]]);
@@ -298,6 +270,47 @@ function GraphCanvas(props) {
 				delete p.vx;
 				delete p.vy;
 			});
+			var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+			members.forEach(function(nid) {
+				var p = posRef.current[nid];
+				if (p.x < bx0) bx0 = p.x;
+				if (p.y < by0) by0 = p.y;
+				if (p.x > bx1) bx1 = p.x;
+				if (p.y > by1) by1 = p.y;
+			});
+			boxes[gid] = {
+				x: bx0,
+				y: by0,
+				w: bx1 - bx0,
+				h: by1 - by0
+			};
+		});
+		var order = groupIds.filter(function(g) {
+			return boxes[g];
+		}).sort(function(a, b) {
+			return boxes[b].w * boxes[b].h - boxes[a].w * boxes[a].h;
+		});
+		var totA = 0;
+		order.forEach(function(g) {
+			totA += (boxes[g].w + groupGap) * (boxes[g].h + groupGap);
+		});
+		var rowW2 = Math.max(700, Math.ceil(Math.sqrt(totA * 1.15)));
+		var curX = 0, curY = 0, rowH = 0;
+		order.forEach(function(gid) {
+			var b = boxes[gid];
+			if (curX > 0 && curX + b.w > rowW2) {
+				curX = 0;
+				curY += rowH + groupGap;
+				rowH = 0;
+			}
+			var dxo = curX - b.x, dyo = curY - b.y;
+			groups[gid].forEach(function(nid) {
+				var p = posRef.current[nid];
+				p.x += dxo;
+				p.y += dyo;
+			});
+			curX += b.w + groupGap;
+			if (b.h > rowH) rowH = b.h;
 		});
 		needFitRef.current = true;
 	}
@@ -315,8 +328,8 @@ function GraphCanvas(props) {
 		needFitRef.current = false;
 		var pad = 46;
 		var bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
-		var k = Math.min(1.25, (W - pad * 2) / bw, (H - pad * 2) / bh);
-		k = Math.max(.05, Math.min(k, 1.25));
+		var kFit = Math.min((W - pad * 2) / bw, (H - pad * 2) / bh);
+		var k = Math.max(.62, Math.min(1.25, kFit));
 		viewRef.current.k = k;
 		viewRef.current.tx = (W - bw * k) / 2 - minX * k;
 		viewRef.current.ty = (H - bh * k) / 2 - minY * k;
@@ -933,7 +946,7 @@ function GraphView() {
 	if (!data.nodes || !data.nodes.length) return (0, react.createElement)("div", { className: "dshm-empty" }, "暂无实体。先保存几条带实体（关键词）的记忆。");
 	var trunc = data.totalEntities > data.nodes.length;
 	function applyLimit() {
-		var n = Math.max(3, Math.min(200, parseInt(limitInput, 10) || 50));
+		var n = Math.max(1, parseInt(limitInput, 10) || 50);
 		setLimitInput(String(n));
 		if (n === appliedLimit) return;
 		setAppliedLimit(n);
@@ -944,8 +957,7 @@ function GraphView() {
 	}
 	var countModule = (0, react.createElement)("span", { className: "dshm-mod dshm-mod-wid" }, (0, react.createElement)("span", { className: "dshm-label" }, "实体数量"), (0, react.createElement)("input", {
 		type: "number",
-		min: 3,
-		max: 200,
+		min: 1,
 		value: limitInput,
 		onChange: function(e) {
 			setLimitInput(e.target.value);
@@ -953,8 +965,8 @@ function GraphView() {
 		onKeyDown: function(e) {
 			if (e.key === "Enter") applyLimit();
 		},
-		style: { width: "56px" },
-		title: "仅对当前有效，重新打开后恢复默认 50"
+		style: { width: "64px" },
+		title: "仅对当前有效，重新打开后恢复默认 50；不设上限"
 	}), (0, react.createElement)("button", { onClick: applyLimit }, "应用"));
 	return (0, react.createElement)("div", { className: "dshm-graph" }, (0, react.createElement)(GraphCanvas, {
 		nodes: data.nodes,
