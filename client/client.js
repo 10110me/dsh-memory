@@ -98,7 +98,7 @@ var ErrorBoundary = (function(Component) {
 function GraphCanvas(props) {
 	var nodes = props.nodes || [];
 	var edges = props.edges || [];
-	var W = 660, H = 460;
+	var W = 660, H = 620;
 	var svgRef = react.default.useRef(null);
 	var gRef = react.default.useRef(null);
 	var nodeElsRef = react.default.useRef({});
@@ -182,11 +182,13 @@ function GraphCanvas(props) {
 					vy: 0
 				};
 			});
+			var area = Math.max(1, boxW * boxH);
+			var fit = Math.sqrt(area * .72 / Math.max(1, n));
 			var ideal = Math.min(boxW, boxH) / Math.max(2.2, Math.sqrt(n)) * 1.9;
-			if (ideal < 120) ideal = 120;
+			ideal = Math.max(70, Math.min(140, Math.min(ideal, fit)));
 			var rep = 18e3;
 			var maxSpd = 7;
-			var minDist = 85;
+			var minDist = Math.max(30, Math.min(85, fit * .78));
 			function clamp(p) {
 				p.x = Math.max(cellX0 + padX + padIn, Math.min(cellX0 + cellW - padX - padIn, p.x));
 				p.y = Math.max(cellY0 + padY + padIn, Math.min(cellY0 + cellH - padY - padIn, p.y));
@@ -210,7 +212,7 @@ function GraphCanvas(props) {
 				q.y -= dy / 2;
 				return 1;
 			}
-			for (var iter = 0; iter < 60; iter++) {
+			for (var iter = 0; iter < 90; iter++) {
 				members.forEach(function(nid) {
 					var p = posRef.current[nid];
 					p.vx = 0;
@@ -438,6 +440,7 @@ function GraphCanvas(props) {
 			syncNode(n.id);
 		});
 		for (var i = 0; i < edges.length; i++) syncLine(i);
+		if (props.onReset) props.onReset();
 	}
 	react.default.useEffect(function() {
 		function move(evt) {
@@ -875,7 +878,7 @@ function GraphView() {
 	var setAppliedLimit = appliedLimit[1];
 	appliedLimit = appliedLimit[0];
 	react.default.useEffect(function() {
-		apiGet("/graph?limit=" + appliedLimit).then(setData).catch(function() {
+		apiGet("/graph?limit=" + appliedLimit + "&t=" + Date.now()).then(setData).catch(function() {
 			setData({
 				nodes: [],
 				edges: [],
@@ -890,7 +893,12 @@ function GraphView() {
 	function applyLimit() {
 		var n = Math.max(3, Math.min(200, parseInt(limitInput, 10) || 50));
 		setLimitInput(String(n));
+		if (n === appliedLimit) return;
 		setAppliedLimit(n);
+	}
+	function resetSession() {
+		setLimitInput("50");
+		setAppliedLimit(50);
 	}
 	var countModule = (0, react.createElement)("span", { className: "dshm-mod dshm-mod-wid" }, (0, react.createElement)("span", { className: "dshm-label" }, "实体数量"), (0, react.createElement)("input", {
 		type: "number",
@@ -909,8 +917,9 @@ function GraphView() {
 	return (0, react.createElement)("div", { className: "dshm-graph" }, (0, react.createElement)(GraphCanvas, {
 		nodes: data.nodes,
 		edges: data.edges,
-		extraControl: countModule
-	}), trunc ? (0, react.createElement)("div", { className: "dshm-hint" }, "共 " + data.totalEntities + " 个实体，当前显示前 " + data.nodes.length + " 个（可在上方调整实体数量）") : null);
+		extraControl: countModule,
+		onReset: resetSession
+	}), (0, react.createElement)("div", { className: "dshm-hint" }, "实体 " + data.nodes.length + " 个 · 关系 " + data.edges.length + " 条 · 共 " + data.totalEntities + " 个实体" + (trunc ? "，当前显示前 " + data.nodes.length + " 个（可用上方实体数量调整）" : "，已全部显示（调大数量画面不会再变）")));
 }
 function UpdateBanner(props) {
 	var info = props.info;

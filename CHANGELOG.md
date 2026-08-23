@@ -2,6 +2,13 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.5
+
+- Fixed persistent node overlap: spacing is now adaptive — ideal and minimum distances are capped by the largest spacing that can physically fit the visible node count inside the canvas, so constraints are always satisfiable (50 nodes at a fixed 85px minimum simply cannot fit a 660px-wide canvas). Taller canvas (620px) and more layout iterations support this.
+- Entity-count control now gives feedback: an always-visible stats line shows "实体 N · 关系 E · 共 T 个实体", plus an explicit note when everything is already shown so raising the limit on a small graph no longer looks like "nothing happened". Repeated identical applies are skipped.
+- Reset now also restores session settings (entity count back to default 50).
+- Graph requests carry a cache-buster to avoid stale HTTP-cached responses.
+
 ## 1.1.4
 
 - Graph toolbar redesigned into one row of three modules above the canvas: zoom (−/percent/+/reset), entity count, and edge width.

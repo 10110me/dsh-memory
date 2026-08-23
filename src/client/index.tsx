@@ -111,7 +111,7 @@ var ErrorBoundary = (function (Component) {
 function GraphCanvas(props) {
   var nodes = props.nodes || [];
   var edges = props.edges || [];
-  var W = 660, H = 460;
+  var W = 660, H = 620;
   var svgRef = React.useRef(null);
   var gRef = React.useRef(null);
   var nodeElsRef = React.useRef({});
@@ -184,11 +184,15 @@ function GraphCanvas(props) {
       });
 
       // 力导向迭代：斥力防重叠，引力沿边聚拢到理想间距
+      // 间距自适应：先算这块区域能铺下 n 个节点的最大可行间距，
+      // 理想间距与最小间距都不超过它——否则约束物理上不可满足，必然重叠
+      var area = Math.max(1, boxW * boxH);
+      var fit = Math.sqrt((area * 0.72) / Math.max(1, n));
       var ideal = Math.min(boxW, boxH) / Math.max(2.2, Math.sqrt(n)) * 1.9;
-      if (ideal < 120) ideal = 120; // 节点之间保持宽松距离，不挤成一团
+      ideal = Math.max(70, Math.min(140, Math.min(ideal, fit)));
       var rep = 18000; // 斥力强度（1/d² 反比）
       var maxSpd = 7;
-      var minDist = 85; // 节点间最小间距（硬约束）
+      var minDist = Math.max(30, Math.min(85, fit * 0.78));
 
       function clamp(p) {
         p.x = Math.max(cellX0 + padX + padIn, Math.min(cellX0 + cellW - padX - padIn, p.x));
@@ -207,7 +211,7 @@ function GraphCanvas(props) {
         return 1;
       }
 
-      for (var iter = 0; iter < 60; iter++) {
+      for (var iter = 0; iter < 90; iter++) {
         members.forEach(function (nid) { var p = posRef.current[nid]; p.vx = 0; p.vy = 0; });
         // 斥力（两两，1/d²）
         for (var i = 0; i < n; i++) {
@@ -395,6 +399,7 @@ function GraphCanvas(props) {
     layoutPositions();
     nodes.forEach(function (n) { syncNode(n.id); });
     for (var i = 0; i < edges.length; i++) syncLine(i);
+    if (props.onReset) props.onReset(); // 重置也恢复会话级设置（实体数量回默认 50）
   }
 
   React.useEffect(function () {
@@ -695,7 +700,7 @@ function GraphView() {
   var setAppliedLimit = appliedLimit[1]; appliedLimit = appliedLimit[0];
 
   React.useEffect(function () {
-    apiGet('/graph?limit=' + appliedLimit).then(setData).catch(function () { setData({ nodes: [], edges: [], totalEntities: 0, limit: 0 }); });
+    apiGet('/graph?limit=' + appliedLimit + '&t=' + Date.now()).then(setData).catch(function () { setData({ nodes: [], edges: [], totalEntities: 0, limit: 0 }); });
   }, [appliedLimit]);
 
   if (!data) return h('div', { className: 'dshm-empty' }, '\u52a0\u8f7d\u4e2d\u2026');
@@ -704,7 +709,12 @@ function GraphView() {
   function applyLimit() {
     var n = Math.max(3, Math.min(200, parseInt(limitInput, 10) || 50));
     setLimitInput(String(n));
+    if (n === appliedLimit) return; // 数量没变就不重新请求
     setAppliedLimit(n);
+  }
+  function resetSession() {
+    setLimitInput('50');
+    setAppliedLimit(50);
   }
   var countModule = h('span', { className: 'dshm-mod dshm-mod-wid' },
     h('span', { className: 'dshm-label' }, '\u5b9e\u4f53\u6570\u91cf'),
@@ -721,8 +731,12 @@ function GraphView() {
       nodes: data.nodes,
       edges: data.edges,
       extraControl: countModule,
+      onReset: resetSession,
     }),
-    trunc ? h('div', { className: 'dshm-hint' }, '\u5171 ' + data.totalEntities + ' \u4e2a\u5b9e\u4f53\uff0c\u5f53\u524d\u663e\u793a\u524d ' + data.nodes.length + ' \u4e2a\uff08\u53ef\u5728\u4e0a\u65b9\u8c03\u6574\u5b9e\u4f53\u6570\u91cf\uff09') : null
+    h('div', { className: 'dshm-hint' },
+      '\u5b9e\u4f53 ' + data.nodes.length + ' \u4e2a \u00b7 \u5173\u7cfb ' + data.edges.length + ' \u6761 \u00b7 \u5171 ' + data.totalEntities + ' \u4e2a\u5b9e\u4f53' +
+        (trunc ? '\uff0c\u5f53\u524d\u663e\u793a\u524d ' + data.nodes.length + ' \u4e2a\uff08\u53ef\u7528\u4e0a\u65b9\u5b9e\u4f53\u6570\u91cf\u8c03\u6574\uff09'
+               : '\uff0c\u5df2\u5168\u90e8\u663e\u793a\uff08\u8c03\u5927\u6570\u91cf\u753b\u9762\u4e0d\u4f1a\u518d\u53d8\uff09'))
   );
 }
 
