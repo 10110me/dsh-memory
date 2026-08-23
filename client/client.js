@@ -26,7 +26,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 let react = require("react");
 react = __toESM(react, 1);
 //#region src/client/index.tsx
-var CSS = ".dshm-root{display:flex;flex-direction:column;gap:12px;padding:6px 2px;font-size:13px;color:inherit}.dshm-tabs{display:flex;gap:6px}.dshm-tab{padding:6px 12px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:13px}.dshm-tab-on{background:rgba(100,120,230,.18);border-color:rgba(100,120,230,.7)}.dshm-banner{opacity:.7}.dshm-status{padding:6px 10px;border-radius:8px;background:rgba(255,190,60,.15);color:inherit}.dshm-form{display:flex;flex-direction:column;gap:10px;max-width:480px}.dshm-field{display:flex;flex-direction:column;gap:4px}.dshm-label{opacity:.7;font-size:12px}.dshm-form input[type=text],.dshm-form input[type=password],.dshm-form input[type=number],.dshm-search,.dshm-card textarea{background:rgba(127,127,127,.07);border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;color:inherit;font-size:13px}.dshm-browbar select{color-scheme:dark;background:#1a1d24;color:#e6e6e6;border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;font-size:13px}.dshm-browbar select option{background:#1a1d24;color:#e6e6e6}.dshm-actions{display:flex;gap:8px;margin-top:4px}.dshm-actions button,.dshm-browbar button,.dshm-graph-toolbar button{padding:8px 14px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:rgba(100,120,230,.18);color:inherit;cursor:pointer}.dshm-actions button:disabled{opacity:.5;cursor:default}.dshm-hint{opacity:.65;font-size:11px;line-height:1.5}.dshm-browser{display:flex;flex-direction:column;gap:10px}.dshm-browbar{display:flex;gap:8px;align-items:center}.dshm-search{flex:1}.dshm-count{opacity:.7;font-size:12px}.dshm-card{border:1px solid rgba(127,127,127,.3);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:rgba(127,127,127,.05)}.dshm-card-head{display:flex;align-items:center;gap:8px}.dshm-badge{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid rgba(127,127,127,.5);opacity:.85}.dshm-badge-pitfall{color:#e07979;border-color:#c26a6a}.dshm-badge-knowledge{color:#79a8e0;border-color:#6a92c2}.dshm-badge-note{opacity:.8}.dshm-summary{font-weight:600;flex:1}.dshm-del{background:transparent;border:none;color:#d88;cursor:pointer;font-size:12px}.dshm-content{opacity:.8;line-height:1.5;white-space:pre-wrap;word-break:break-word}.dshm-tags{display:flex;flex-wrap:wrap;gap:4px}.dshm-tag{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(100,120,230,.16)}.dshm-empty{opacity:.7;padding:12px 0}.dshm-pending{display:flex;flex-direction:column;gap:6px}.dshm-pending-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(100,120,230,.35);border-radius:10px;background:rgba(100,120,230,.08)}.dshm-pending-preview{flex:1;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dshm-spinner{width:14px;height:14px;border:2px solid rgba(127,127,127,.3);border-top-color:rgba(100,120,230,.9);border-radius:50%;display:inline-block;animation:dshmspin .8s linear infinite}@keyframes dshmspin{to{transform:rotate(360deg)}}.dshm-stage{font-size:12px;opacity:.8;white-space:nowrap}.dshm-stage-done{color:#7fd17f}.dshm-stage-err{color:#e07979}.dshm-graph{display:flex;flex-direction:column;gap:8px}.dshm-graph-toolbar{display:flex;gap:6px;align-items:center}.dshm-graph-toolbar button{padding:4px 12px}.dshm-svg{display:block;max-width:100%;background:rgba(127,127,127,.04);border:1px solid rgba(127,127,127,.3);border-radius:10px;touch-action:none}.dshm-node-label{fill:currentColor;font-size:11px}.dshm-graph-linew{display:flex;gap:8px;align-items:center;font-size:12px}.dshm-graph-linew input[type=range]{accent-color:rgba(100,120,230,.8)}.dshm-selinfo{padding:10px 12px;border:1px solid rgba(255,200,80,.35);border-radius:10px;background:rgba(255,200,80,.08);display:flex;flex-direction:column;gap:8px}.dshm-selinfo-title{font-weight:600;font-size:14px}.dshm-selinfo-neighbors{display:flex;flex-wrap:wrap;gap:4px}.dshm-selinfo-neighbors .dshm-tag{background:rgba(255,200,80,.16)}.dshm-update{border:1px solid rgba(100,120,230,.55);border-radius:10px;padding:10px 12px;background:rgba(100,120,230,.1);display:flex;flex-direction:column;gap:8px}.dshm-update-title{font-weight:600}.dshm-update-log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:160px;overflow:auto;border:1px solid rgba(127,127,127,.25);border-radius:8px;padding:8px 10px;background:rgba(127,127,127,.05)}.dshm-update-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dshm-update-msg{font-size:12px;opacity:.85}";
+var CSS = ".dshm-root{display:flex;flex-direction:column;gap:12px;padding:6px 2px;font-size:13px;color:inherit}.dshm-tabs{display:flex;gap:6px}.dshm-tab{padding:6px 12px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:13px}.dshm-tab-on{background:rgba(100,120,230,.18);border-color:rgba(100,120,230,.7)}.dshm-banner{opacity:.7}.dshm-status{padding:6px 10px;border-radius:8px;background:rgba(255,190,60,.15);color:inherit}.dshm-form{display:flex;flex-direction:column;gap:10px;max-width:480px}.dshm-field{display:flex;flex-direction:column;gap:4px}.dshm-label{opacity:.7;font-size:12px}.dshm-form input[type=text],.dshm-form input[type=password],.dshm-form input[type=number],.dshm-search,.dshm-card textarea{background:rgba(127,127,127,.07);border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;color:inherit;font-size:13px}.dshm-browbar select{color-scheme:dark;background:#1a1d24;color:#e6e6e6;border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:8px 10px;font-size:13px}.dshm-browbar select option{background:#1a1d24;color:#e6e6e6}.dshm-actions{display:flex;gap:8px;margin-top:4px}.dshm-actions button,.dshm-browbar button,.dshm-graph-toolbar button{padding:8px 14px;border:1px solid rgba(127,127,127,.4);border-radius:8px;background:rgba(100,120,230,.18);color:inherit;cursor:pointer}.dshm-actions button:disabled{opacity:.5;cursor:default}.dshm-hint{opacity:.65;font-size:11px;line-height:1.5}.dshm-browser{display:flex;flex-direction:column;gap:10px}.dshm-browbar{display:flex;gap:8px;align-items:center}.dshm-search{flex:1}.dshm-count{opacity:.7;font-size:12px}.dshm-card{border:1px solid rgba(127,127,127,.3);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:rgba(127,127,127,.05)}.dshm-card-head{display:flex;align-items:center;gap:8px}.dshm-badge{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid rgba(127,127,127,.5);opacity:.85}.dshm-badge-pitfall{color:#e07979;border-color:#c26a6a}.dshm-badge-knowledge{color:#79a8e0;border-color:#6a92c2}.dshm-badge-note{opacity:.8}.dshm-summary{font-weight:600;flex:1}.dshm-del{background:transparent;border:none;color:#d88;cursor:pointer;font-size:12px}.dshm-content{opacity:.8;line-height:1.5;white-space:pre-wrap;word-break:break-word}.dshm-tags{display:flex;flex-wrap:wrap;gap:4px}.dshm-tag{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(100,120,230,.16)}.dshm-empty{opacity:.7;padding:12px 0}.dshm-pending{display:flex;flex-direction:column;gap:6px}.dshm-pending-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(100,120,230,.35);border-radius:10px;background:rgba(100,120,230,.08)}.dshm-pending-preview{flex:1;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dshm-spinner{width:14px;height:14px;border:2px solid rgba(127,127,127,.3);border-top-color:rgba(100,120,230,.9);border-radius:50%;display:inline-block;animation:dshmspin .8s linear infinite}@keyframes dshmspin{to{transform:rotate(360deg)}}.dshm-stage{font-size:12px;opacity:.8;white-space:nowrap}.dshm-stage-done{color:#7fd17f}.dshm-stage-err{color:#e07979}.dshm-graph{display:flex;flex-direction:column;gap:8px}.dshm-graph-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.dshm-mod{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(127,127,127,.3);border-radius:8px;padding:4px 10px;background:rgba(127,127,127,.06)}.dshm-mod button{min-width:26px}.dshm-graph-toolbar button{padding:4px 12px}.dshm-svg{display:block;max-width:100%;background:rgba(127,127,127,.04);border:1px solid rgba(127,127,127,.3);border-radius:10px;touch-action:none}.dshm-node-label{fill:currentColor;font-size:11px}.dshm-graph-linew{display:flex;gap:8px;align-items:center;font-size:12px}.dshm-graph-linew input[type=range]{accent-color:rgba(100,120,230,.8)}.dshm-selinfo{padding:10px 12px;border:1px solid rgba(255,200,80,.35);border-radius:10px;background:rgba(255,200,80,.08);display:flex;flex-direction:column;gap:8px}.dshm-selinfo-title{font-weight:600;font-size:14px}.dshm-selinfo-neighbors{display:flex;flex-wrap:wrap;gap:4px}.dshm-selinfo-neighbors .dshm-tag{background:rgba(255,200,80,.16)}.dshm-update{border:1px solid rgba(100,120,230,.55);border-radius:10px;padding:10px 12px;background:rgba(100,120,230,.1);display:flex;flex-direction:column;gap:8px}.dshm-update-title{font-weight:600}.dshm-update-log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:160px;overflow:auto;border:1px solid rgba(127,127,127,.25);border-radius:8px;padding:8px 10px;background:rgba(127,127,127,.05)}.dshm-update-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dshm-update-msg{font-size:12px;opacity:.85}";
 var styleTag = null;
 function ensureCSS() {
 	if (styleTag) return;
@@ -183,10 +183,10 @@ function GraphCanvas(props) {
 				};
 			});
 			var ideal = Math.min(boxW, boxH) / Math.max(2.2, Math.sqrt(n)) * 1.9;
-			if (ideal < 60) ideal = 60;
-			var rep = 9e3;
-			var maxSpd = 5;
-			var minDist = 40;
+			if (ideal < 120) ideal = 120;
+			var rep = 18e3;
+			var maxSpd = 7;
+			var minDist = 85;
 			function clamp(p) {
 				p.x = Math.max(cellX0 + padX + padIn, Math.min(cellX0 + cellW - padX - padIn, p.x));
 				p.y = Math.max(cellY0 + padY + padIn, Math.min(cellY0 + cellH - padY - padIn, p.y));
@@ -337,7 +337,9 @@ function GraphCanvas(props) {
 	}
 	function zoomBy(f) {
 		var v = viewRef.current;
-		v.k = Math.max(.2, Math.min(4, v.k * f));
+		var nk = Math.max(.05, Math.min(8, v.k * f));
+		if (nk === v.k) return;
+		v.k = nk;
 		applyView();
 		setZoomPct(Math.round(v.k * 100));
 	}
@@ -347,9 +349,13 @@ function GraphCanvas(props) {
 		var px = (evt.clientX - r.left) * sc.sx;
 		var py = (evt.clientY - r.top) * sc.sy;
 		var v = viewRef.current;
-		v.k = Math.max(.2, Math.min(4, v.k * (evt.deltaY < 0 ? 1.15 : 1 / 1.15)));
-		v.tx = px - (px - v.tx) / (v.k / (evt.deltaY < 0 ? 1.15 : 1 / 1.15)) * v.k;
-		v.ty = py - (py - v.ty) / (v.k / (evt.deltaY < 0 ? 1.15 : 1 / 1.15)) * v.k;
+		var f = evt.deltaY < 0 ? 1.15 : 1 / 1.15;
+		var oldK = v.k;
+		var nk = Math.max(.05, Math.min(8, oldK * f));
+		if (nk === oldK) return;
+		v.k = nk;
+		v.tx = px - (px - v.tx) * (nk / oldK);
+		v.ty = py - (py - v.ty) * (nk / oldK);
 		applyView();
 		setZoomPct(Math.round(v.k * 100));
 	}
@@ -553,11 +559,20 @@ function GraphCanvas(props) {
 			}, nb.id + " ×" + nb.weight);
 		})) : null);
 	}
-	return (0, react.createElement)("div", { className: "dshm-graph" }, (0, react.createElement)("div", { className: "dshm-graph-toolbar" }, (0, react.createElement)("span", { className: "dshm-count" }, zoomPct + "%"), (0, react.createElement)("button", { onClick: function() {
-		zoomBy(1.3);
-	} }, "+"), (0, react.createElement)("button", { onClick: function() {
-		zoomBy(1 / 1.3);
-	} }, "−"), (0, react.createElement)("button", { onClick: reset }, "重置"), sel ? (0, react.createElement)("span", { className: "dshm-count" }, "已选：" + sel) : null), (0, react.createElement)("div", { className: "dshm-graph-linew" }, (0, react.createElement)("span", { className: "dshm-label" }, "线粗"), (0, react.createElement)("input", {
+	return (0, react.createElement)("div", { className: "dshm-graph" }, (0, react.createElement)("div", { className: "dshm-graph-toolbar" }, (0, react.createElement)("span", { className: "dshm-mod" }, (0, react.createElement)("button", {
+		onClick: function() {
+			zoomBy(1.3);
+		},
+		title: "放大"
+	}, "+"), (0, react.createElement)("span", { className: "dshm-count" }, zoomPct + "%"), (0, react.createElement)("button", {
+		onClick: function() {
+			zoomBy(1 / 1.3);
+		},
+		title: "缩小"
+	}, "−"), (0, react.createElement)("button", {
+		onClick: reset,
+		title: "重置视图与布局"
+	}, "重置")), props.extraControl || null, (0, react.createElement)("span", { className: "dshm-mod dshm-mod-wid" }, (0, react.createElement)("span", { className: "dshm-label" }, "线粗"), (0, react.createElement)("input", {
 		type: "range",
 		min: .5,
 		max: 5,
@@ -567,7 +582,7 @@ function GraphCanvas(props) {
 			setLineW(Number(e.target.value));
 		},
 		style: { width: "80px" }
-	}), (0, react.createElement)("span", { className: "dshm-count" }, lineWArr.toFixed(1) + "x")), (0, react.createElement)("svg", {
+	}), (0, react.createElement)("span", { className: "dshm-count" }, lineWArr.toFixed(1) + "x")), sel ? (0, react.createElement)("span", { className: "dshm-count" }, "已选：" + sel) : null), (0, react.createElement)("svg", {
 		ref: svgRef,
 		width: W,
 		height: H,
@@ -577,7 +592,7 @@ function GraphCanvas(props) {
 	}, (0, react.createElement)("g", {
 		ref: gRef,
 		transform: "translate(0,0) scale(1)"
-	}, lines, circles)), selInfo, (0, react.createElement)("div", { className: "dshm-hint" }, "点击节点高亮关联链 · 拖拽节点移动 · 滚轮缩放 · 拖拽空白平移 · 重置重新分组布局"));
+	}, lines, circles)), selInfo, (0, react.createElement)("div", { className: "dshm-hint" }, "点击节点高亮关联链 · 拖拽节点移动 · 滚轮缩放（最小 5%） · 拖拽空白平移"));
 }
 function ConfigForm(props) {
 	var apiBase = react.default.useState("");
@@ -592,9 +607,6 @@ function ConfigForm(props) {
 	var dimensions = react.default.useState("");
 	var setDimensions = dimensions[1];
 	dimensions = dimensions[0];
-	var maxNodes = react.default.useState("50");
-	var setMaxNodes = maxNodes[1];
-	maxNodes = maxNodes[0];
 	var enabled = react.default.useState(false);
 	var setEnabled = enabled[1];
 	enabled = enabled[0];
@@ -610,7 +622,6 @@ function ConfigForm(props) {
 		setApiKey(props.cfg.apiKey || "");
 		setModel(props.cfg.model || "");
 		setDimensions(props.cfg.dimensions ? String(props.cfg.dimensions) : "");
-		setMaxNodes(props.cfg.maxNodes ? String(props.cfg.maxNodes) : "50");
 		setEnabled(!!props.cfg.enabled);
 		setOrganize(props.cfg.organizeWithModel !== false);
 	}, [props.cfg]);
@@ -620,7 +631,6 @@ function ConfigForm(props) {
 			apiKey,
 			model,
 			dimensions: Number(dimensions) || 0,
-			maxNodes: Number(maxNodes) || 50,
 			enabled,
 			organizeWithModel: organize
 		});
@@ -678,14 +688,6 @@ function ConfigForm(props) {
 		placeholder: "0",
 		onChange: function(e) {
 			setDimensions(e.target.value);
-		}
-	})), field("关系图最大节点数（3–200，默认 50）", (0, react.createElement)("input", {
-		type: "number",
-		value: maxNodes,
-		min: 3,
-		max: 200,
-		onChange: function(e) {
-			setMaxNodes(e.target.value);
 		}
 	})), field("启用向量检索", (0, react.createElement)("input", {
 		type: "checkbox",
@@ -866,8 +868,14 @@ function GraphView() {
 	var data = react.default.useState(null);
 	var setData = data[1];
 	data = data[0];
+	var limitInput = react.default.useState("50");
+	var setLimitInput = limitInput[1];
+	limitInput = limitInput[0];
+	var appliedLimit = react.default.useState(50);
+	var setAppliedLimit = appliedLimit[1];
+	appliedLimit = appliedLimit[0];
 	react.default.useEffect(function() {
-		apiGet("/graph").then(setData).catch(function() {
+		apiGet("/graph?limit=" + appliedLimit).then(setData).catch(function() {
 			setData({
 				nodes: [],
 				edges: [],
@@ -875,14 +883,34 @@ function GraphView() {
 				limit: 0
 			});
 		});
-	}, []);
+	}, [appliedLimit]);
 	if (!data) return (0, react.createElement)("div", { className: "dshm-empty" }, "加载中…");
 	if (!data.nodes || !data.nodes.length) return (0, react.createElement)("div", { className: "dshm-empty" }, "暂无实体。先保存几条带实体（关键词）的记忆。");
 	var trunc = data.totalEntities > data.nodes.length;
-	return (0, react.createElement)("div", { className: "dshm-graph" }, (0, react.createElement)("div", { className: "dshm-count" }, "实体 " + data.nodes.length + " 个 · 关系 " + data.edges.length + " 条" + (trunc ? "（共 " + data.totalEntities + " 个，已限制显示前 " + data.nodes.length + " 个，可在配置中调整）" : "")), (0, react.createElement)(GraphCanvas, {
+	function applyLimit() {
+		var n = Math.max(3, Math.min(200, parseInt(limitInput, 10) || 50));
+		setLimitInput(String(n));
+		setAppliedLimit(n);
+	}
+	var countModule = (0, react.createElement)("span", { className: "dshm-mod dshm-mod-wid" }, (0, react.createElement)("span", { className: "dshm-label" }, "实体数量"), (0, react.createElement)("input", {
+		type: "number",
+		min: 3,
+		max: 200,
+		value: limitInput,
+		onChange: function(e) {
+			setLimitInput(e.target.value);
+		},
+		onKeyDown: function(e) {
+			if (e.key === "Enter") applyLimit();
+		},
+		style: { width: "56px" },
+		title: "仅对当前有效，重新打开后恢复默认 50"
+	}), (0, react.createElement)("button", { onClick: applyLimit }, "应用"));
+	return (0, react.createElement)("div", { className: "dshm-graph" }, (0, react.createElement)(GraphCanvas, {
 		nodes: data.nodes,
-		edges: data.edges
-	}));
+		edges: data.edges,
+		extraControl: countModule
+	}), trunc ? (0, react.createElement)("div", { className: "dshm-hint" }, "共 " + data.totalEntities + " 个实体，当前显示前 " + data.nodes.length + " 个（可在上方调整实体数量）") : null);
 }
 function UpdateBanner(props) {
 	var info = props.info;

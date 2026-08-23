@@ -2,6 +2,14 @@
 
 All notable changes to dsh-memory. The in-app updater reads this file to show what's new.
 
+## 1.1.4
+
+- Graph toolbar redesigned into one row of three modules above the canvas: zoom (−/percent/+/reset), entity count, and edge width.
+- Fixed zoom boundary drift: scrolling past the minimum/maximum zoom no longer pans the canvas.
+- Wider zoom range: 5% – 800% (was 20% – 400%).
+- Entity count is now a per-session control on the graph toolbar (default 50, resets on reopen) instead of a persisted config field.
+- Roomier layout: minimum node spacing 40 → 85 px, ideal spacing floor 60 → 120 px, doubled repulsion — nodes no longer crowd together.
+
 ## 1.1.3
 
 - Fixed graph collapse: a whole entity group could shrink to a single point when two entity names hashed to the same starting position — the zero-distance repulsion then produced NaN and poisoned every position in that connected component. Initial positions now use a stronger rolling hash plus golden-ratio per-index jitter, coinciding pairs get a random nudge before the repulsion force, and any non-finite coordinate is reset during layout.

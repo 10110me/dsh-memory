@@ -43,7 +43,9 @@ var CSS = '.dshm-root{display:flex;flex-direction:column;gap:12px;padding:6px 2p
 + '.dshm-stage-done{color:#7fd17f}'
 + '.dshm-stage-err{color:#e07979}'
 + '.dshm-graph{display:flex;flex-direction:column;gap:8px}'
-+ '.dshm-graph-toolbar{display:flex;gap:6px;align-items:center}'
++ '.dshm-graph-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}'
++ '.dshm-mod{display:inline-flex;gap:6px;align-items:center;border:1px solid rgba(127,127,127,.3);border-radius:8px;padding:4px 10px;background:rgba(127,127,127,.06)}'
++ '.dshm-mod button{min-width:26px}'
 + '.dshm-graph-toolbar button{padding:4px 12px}'
 + '.dshm-svg{display:block;max-width:100%;background:rgba(127,127,127,.04);border:1px solid rgba(127,127,127,.3);border-radius:10px;touch-action:none}'
 + '.dshm-node-label{fill:currentColor;font-size:11px}'
@@ -183,10 +185,10 @@ function GraphCanvas(props) {
 
       // 力导向迭代：斥力防重叠，引力沿边聚拢到理想间距
       var ideal = Math.min(boxW, boxH) / Math.max(2.2, Math.sqrt(n)) * 1.9;
-      if (ideal < 60) ideal = 60;
-      var rep = 9000; // 斥力强度（1/d² 反比）
-      var maxSpd = 5;
-      var minDist = 40; // 节点间最小间距（硬约束）
+      if (ideal < 120) ideal = 120; // 节点之间保持宽松距离，不挤成一团
+      var rep = 18000; // 斥力强度（1/d² 反比）
+      var maxSpd = 7;
+      var minDist = 85; // 节点间最小间距（硬约束）
 
       function clamp(p) {
         p.x = Math.max(cellX0 + padX + padIn, Math.min(cellX0 + cellW - padX - padIn, p.x));
@@ -309,7 +311,9 @@ function GraphCanvas(props) {
   }
   function zoomBy(f) {
     var v = viewRef.current;
-    v.k = Math.max(0.2, Math.min(4, v.k * f));
+    var nk = Math.max(0.05, Math.min(8, v.k * f));
+    if (nk === v.k) return; // 已到边界：完全不动，避免视觉跳动
+    v.k = nk;
     applyView();
     setZoomPct(Math.round(v.k * 100));
   }
@@ -321,9 +325,14 @@ function GraphCanvas(props) {
     var px = (evt.clientX - r.left) * sc.sx;
     var py = (evt.clientY - r.top) * sc.sy;
     var v = viewRef.current;
-    v.k = Math.max(0.2, Math.min(4, v.k * (evt.deltaY < 0 ? 1.15 : 1 / 1.15)));
-    v.tx = px - ((px - v.tx) / (v.k / (evt.deltaY < 0 ? 1.15 : 1 / 1.15))) * v.k;
-    v.ty = py - ((py - v.ty) / (v.k / (evt.deltaY < 0 ? 1.15 : 1 / 1.15))) * v.k;
+    var f = evt.deltaY < 0 ? 1.15 : 1 / 1.15;
+    var oldK = v.k;
+    var nk = Math.max(0.05, Math.min(8, oldK * f));
+    if (nk === oldK) return; // 缩放已到最小/最大：直接忽略，画布保持不动
+    // 以鼠标位置为锚点缩放：用新旧倍率之比修正平移，杜绝边界漂移
+    v.k = nk;
+    v.tx = px - (px - v.tx) * (nk / oldK);
+    v.ty = py - (py - v.ty) * (nk / oldK);
     applyView();
     setZoomPct(Math.round(v.k * 100));
   }
@@ -481,20 +490,24 @@ function GraphCanvas(props) {
 
   return h('div', { className: 'dshm-graph' },
     h('div', { className: 'dshm-graph-toolbar' },
-      h('span', { className: 'dshm-count' }, zoomPct + '%'),
-      h('button', { onClick: function () { zoomBy(1.3); } }, '+'),
-      h('button', { onClick: function () { zoomBy(1 / 1.3); } }, '\u2212'),
-      h('button', { onClick: reset }, '\u91cd\u7f6e'),
+      // 模块一：缩放
+      h('span', { className: 'dshm-mod' },
+        h('button', { onClick: function () { zoomBy(1.3); }, title: '\u653e\u5927' }, '+'),
+        h('span', { className: 'dshm-count' }, zoomPct + '%'),
+        h('button', { onClick: function () { zoomBy(1 / 1.3); }, title: '\u7f29\u5c0f' }, '\u2212'),
+        h('button', { onClick: reset, title: '\u91cd\u7f6e\u89c6\u56fe\u4e0e\u5e03\u5c40' }, '\u91cd\u7f6e')),
+      // 模块二：实体数量（由 GraphView 注入，会话级生效）
+      (props.extraControl || null),
+      // 模块三：线条粗细
+      h('span', { className: 'dshm-mod dshm-mod-wid' },
+        h('span', { className: 'dshm-label' }, '\u7ebf\u7c97'),
+        h('input', { type: 'range', min: 0.5, max: 5, step: 0.1, value: lineWArr, onChange: function (e) { setLineW(Number(e.target.value)); }, style: { width: '80px' } }),
+        h('span', { className: 'dshm-count' }, lineWArr.toFixed(1) + 'x')),
       sel ? h('span', { className: 'dshm-count' }, '\u5df2\u9009\uff1a' + sel) : null),
-    h('div', { className: 'dshm-graph-linew' },
-      h('span', { className: 'dshm-label' }, '\u7ebf\u7c97'),
-      h('input', { type: 'range', min: 0.5, max: 5, step: 0.1, value: lineWArr, onChange: function (e) { setLineW(Number(e.target.value)); }, style: { width: '80px' } }),
-      h('span', { className: 'dshm-count' }, lineWArr.toFixed(1) + 'x')
-    ),
     h('svg', { ref: svgRef, width: W, height: H, className: 'dshm-svg', onMouseDown: onSvgMouseDown, style: { touchAction: 'none' } },
       h('g', { ref: gRef, transform: 'translate(0,0) scale(1)' }, lines, circles)),
     selInfo,
-    h('div', { className: 'dshm-hint' }, '\u70b9\u51fb\u8282\u70b9\u9ad8\u4eae\u5173\u8054\u94fe \u00b7 \u62d6\u62fd\u8282\u70b9\u79fb\u52a8 \u00b7 \u6eda\u8f6e\u7f29\u653e \u00b7 \u62d6\u62fd\u7a7a\u767d\u5e73\u79fb \u00b7 \u91cd\u7f6e\u91cd\u65b0\u5206\u7ec4\u5e03\u5c40')
+    h('div', { className: 'dshm-hint' }, '\u70b9\u51fb\u8282\u70b9\u9ad8\u4eae\u5173\u8054\u94fe \u00b7 \u62d6\u62fd\u8282\u70b9\u79fb\u52a8 \u00b7 \u6eda\u8f6e\u7f29\u653e\uff08\u6700\u5c0f 5%\uff09 \u00b7 \u62d6\u62fd\u7a7a\u767d\u5e73\u79fb')
   );
 }
 
@@ -507,8 +520,6 @@ function ConfigForm(props) {
   var setModel = model[1]; model = model[0];
   var dimensions = React.useState('');
   var setDimensions = dimensions[1]; dimensions = dimensions[0];
-  var maxNodes = React.useState('50');
-  var setMaxNodes = maxNodes[1]; maxNodes = maxNodes[0];
   var enabled = React.useState(false);
   var setEnabled = enabled[1]; enabled = enabled[0];
   var organize = React.useState(true);
@@ -522,13 +533,12 @@ function ConfigForm(props) {
     setApiKey(props.cfg.apiKey || '');
     setModel(props.cfg.model || '');
     setDimensions(props.cfg.dimensions ? String(props.cfg.dimensions) : '');
-    setMaxNodes(props.cfg.maxNodes ? String(props.cfg.maxNodes) : '50');
     setEnabled(!!props.cfg.enabled);
     setOrganize(props.cfg.organizeWithModel !== false);
   }, [props.cfg]);
 
   function persist() {
-    return apiPost('/config', { apiBase: apiBase, apiKey: apiKey, model: model, dimensions: Number(dimensions) || 0, maxNodes: Number(maxNodes) || 50, enabled: enabled, organizeWithModel: organize });
+    return apiPost('/config', { apiBase: apiBase, apiKey: apiKey, model: model, dimensions: Number(dimensions) || 0, enabled: enabled, organizeWithModel: organize });
   }
   function save() {
     setBusy(true);
@@ -544,7 +554,6 @@ function ConfigForm(props) {
     field('API Key', h('input', { type: 'password', value: apiKey, placeholder: 'sk-\u2026', autoComplete: 'off', onChange: function (e) { setApiKey(e.target.value); } })),
     field('\u5d4c\u5165\u6a21\u578b', h('input', { type: 'text', value: model, placeholder: 'text-embedding-3-small', onChange: function (e) { setModel(e.target.value); } })),
     field('\u5d4c\u5165\u7ef4\u5ea6\uff080 = \u6a21\u578b\u9ed8\u8ba4\uff09', h('input', { type: 'number', value: dimensions, placeholder: '0', onChange: function (e) { setDimensions(e.target.value); } })),
-    field('\u5173\u7cfb\u56fe\u6700\u5927\u8282\u70b9\u6570\uff083\u2013200\uff0c\u9ed8\u8ba4 50\uff09', h('input', { type: 'number', value: maxNodes, min: 3, max: 200, onChange: function (e) { setMaxNodes(e.target.value); } })),
     field('\u542f\u7528\u5411\u91cf\u68c0\u7d22', h('input', { type: 'checkbox', checked: enabled, onChange: function (e) { setEnabled(e.target.checked); } })),
     field('\u7528\u7f16\u7a0b\u6a21\u578b\u6574\u7406\u8bb0\u5fc6', h('input', { type: 'checkbox', checked: organize, onChange: function (e) { setOrganize(e.target.checked); } })),
     h('div', { className: 'dshm-actions' },
@@ -679,13 +688,42 @@ function MemoryBrowser(props) {
 function GraphView() {
   var data = React.useState(null);
   var setData = data[1]; data = data[0];
-  React.useEffect(function () { apiGet('/graph').then(setData).catch(function () { setData({ nodes: [], edges: [], totalEntities: 0, limit: 0 }); }); }, []);
+  // 实体数量：会话级设置（默认 50），切换页签/重开面板后自动重置，不写进配置
+  var limitInput = React.useState('50');
+  var setLimitInput = limitInput[1]; limitInput = limitInput[0];
+  var appliedLimit = React.useState(50);
+  var setAppliedLimit = appliedLimit[1]; appliedLimit = appliedLimit[0];
+
+  React.useEffect(function () {
+    apiGet('/graph?limit=' + appliedLimit).then(setData).catch(function () { setData({ nodes: [], edges: [], totalEntities: 0, limit: 0 }); });
+  }, [appliedLimit]);
+
   if (!data) return h('div', { className: 'dshm-empty' }, '\u52a0\u8f7d\u4e2d\u2026');
   if (!data.nodes || !data.nodes.length) return h('div', { className: 'dshm-empty' }, '\u6682\u65e0\u5b9e\u4f53\u3002\u5148\u4fdd\u5b58\u51e0\u6761\u5e26\u5b9e\u4f53\uff08\u5173\u952e\u8bcd\uff09\u7684\u8bb0\u5fc6\u3002');
   var trunc = data.totalEntities > data.nodes.length;
+  function applyLimit() {
+    var n = Math.max(3, Math.min(200, parseInt(limitInput, 10) || 50));
+    setLimitInput(String(n));
+    setAppliedLimit(n);
+  }
+  var countModule = h('span', { className: 'dshm-mod dshm-mod-wid' },
+    h('span', { className: 'dshm-label' }, '\u5b9e\u4f53\u6570\u91cf'),
+    h('input', {
+      type: 'number', min: 3, max: 200, value: limitInput,
+      onChange: function (e) { setLimitInput(e.target.value); },
+      onKeyDown: function (e) { if (e.key === 'Enter') applyLimit(); },
+      style: { width: '56px' },
+      title: '\u4ec5\u5bf9\u5f53\u524d\u6709\u6548\uff0c\u91cd\u65b0\u6253\u5f00\u540e\u6062\u590d\u9ed8\u8ba4 50',
+    }),
+    h('button', { onClick: applyLimit }, '\u5e94\u7528'));
   return h('div', { className: 'dshm-graph' },
-    h('div', { className: 'dshm-count' }, '\u5b9e\u4f53 ' + data.nodes.length + ' \u4e2a \u00b7 \u5173\u7cfb ' + data.edges.length + ' \u6761' + (trunc ? ('\uff08\u5171 ' + data.totalEntities + ' \u4e2a\uff0c\u5df2\u9650\u5236\u663e\u793a\u524d ' + data.nodes.length + ' \u4e2a\uff0c\u53ef\u5728\u914d\u7f6e\u4e2d\u8c03\u6574\uff09') : '')),
-    h(GraphCanvas, { nodes: data.nodes, edges: data.edges }));
+    h(GraphCanvas, {
+      nodes: data.nodes,
+      edges: data.edges,
+      extraControl: countModule,
+    }),
+    trunc ? h('div', { className: 'dshm-hint' }, '\u5171 ' + data.totalEntities + ' \u4e2a\u5b9e\u4f53\uff0c\u5f53\u524d\u663e\u793a\u524d ' + data.nodes.length + ' \u4e2a\uff08\u53ef\u5728\u4e0a\u65b9\u8c03\u6574\u5b9e\u4f53\u6570\u91cf\uff09') : null
+  );
 }
 
 // ── 更新提示横幅：忽略 / 忽略这个版本 / 更新（两阶段真实进度 + 中英文自适应） ──
